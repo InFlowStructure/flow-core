@@ -11,7 +11,7 @@ using namespace FLOW_NAMESPACE;
 namespace
 {
 auto factory = std::make_shared<NodeFactory>();
-auto env = Env::Create(factory);
+auto env     = Env::Create(factory);
 
 struct TestNode : public Node
 {
@@ -37,10 +37,7 @@ struct TestNode : public Node
 };
 } // namespace
 
-TEST(GraphTest, Construction)
-{
-    ASSERT_NO_THROW(auto graph = std::make_shared<Graph>("test", env));
-}
+TEST(GraphTest, Construction) { ASSERT_NO_THROW(auto graph = std::make_shared<Graph>("test", env)); }
 
 TEST(GraphTest, AddNodes)
 {
@@ -161,9 +158,9 @@ TEST(GraphTest, DistinguishNodes)
 
     // All nodes are orphans, no connections made yet.
     {
-        const auto &source_nodes = graph->GetSourceNodes();
-        const auto &leaf_nodes = graph->GetLeafNodes();
-        const auto &orphan_nodes = graph->GetOrphanNodes();
+        const auto& source_nodes = graph->GetSourceNodes();
+        const auto& leaf_nodes   = graph->GetLeafNodes();
+        const auto& orphan_nodes = graph->GetOrphanNodes();
 
         EXPECT_TRUE(source_nodes.empty());
         EXPECT_TRUE(leaf_nodes.empty());
@@ -174,9 +171,9 @@ TEST(GraphTest, DistinguishNodes)
 
     // A connection has been made, 2 nodes should no longer be orphaned
     {
-        const auto &source_nodes = graph->GetSourceNodes();
-        const auto &leaf_nodes = graph->GetLeafNodes();
-        const auto &orphan_nodes = graph->GetOrphanNodes();
+        const auto& source_nodes = graph->GetSourceNodes();
+        const auto& leaf_nodes   = graph->GetLeafNodes();
+        const auto& orphan_nodes = graph->GetOrphanNodes();
 
         EXPECT_EQ(source_nodes.size(), 1);
         EXPECT_EQ(leaf_nodes.size(), 1);
@@ -188,9 +185,9 @@ TEST(GraphTest, DistinguishNodes)
 
     // New nodes are always orphans
     {
-        const auto &source_nodes = graph->GetSourceNodes();
-        const auto &leaf_nodes = graph->GetLeafNodes();
-        const auto &orphan_nodes = graph->GetOrphanNodes();
+        const auto& source_nodes = graph->GetSourceNodes();
+        const auto& leaf_nodes   = graph->GetLeafNodes();
+        const auto& orphan_nodes = graph->GetOrphanNodes();
 
         EXPECT_EQ(source_nodes.size(), 1);
         EXPECT_EQ(leaf_nodes.size(), 1);
@@ -201,9 +198,9 @@ TEST(GraphTest, DistinguishNodes)
 
     // New connection made, leaves should increase, and orphans should decrease.
     {
-        const auto &source_nodes = graph->GetSourceNodes();
-        const auto &leaf_nodes = graph->GetLeafNodes();
-        const auto &orphan_nodes = graph->GetOrphanNodes();
+        const auto& source_nodes = graph->GetSourceNodes();
+        const auto& leaf_nodes   = graph->GetLeafNodes();
+        const auto& orphan_nodes = graph->GetOrphanNodes();
 
         EXPECT_EQ(source_nodes.size(), 1);
         EXPECT_EQ(leaf_nodes.size(), 2);
