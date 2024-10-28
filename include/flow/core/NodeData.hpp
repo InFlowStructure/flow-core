@@ -7,13 +7,14 @@
 #include "TypeName.hpp"
 
 #include <nlohmann/json.hpp>
-using json = nlohmann::json;
 
 #include <chrono>
 #include <memory>
 #include <type_traits>
 
 FLOW_NAMESPACE_START
+
+using json = nlohmann::json;
 
 /**
  * @brief Converts the given value type to a string.

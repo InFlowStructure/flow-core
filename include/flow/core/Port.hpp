@@ -12,9 +12,9 @@
 #include <stdint.h>
 #include <string_view>
 
-using json = nlohmann::json;
-
 FLOW_NAMESPACE_START
+
+using json = nlohmann::json;
 
 class Port
 {
