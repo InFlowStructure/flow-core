@@ -39,6 +39,14 @@ class Node
     using PortMap = std::unordered_map<IndexableName, SharedPort>;
 
   protected:
+    /**
+     * @brief Protected constructor for nodes.
+     *
+     * @param uuid The UUID for the node.
+     * @param class_name The class name of the derived type.
+     * @param name The friendly name of the node.
+     * @param env The shared environment.
+     */
     explicit Node(const UUID& uuid, std::string_view class_name, std::string_view name, std::shared_ptr<Env> env);
 
   public:

@@ -36,16 +36,20 @@ using CategoryMap = std::unordered_multimap<std::string, std::string>;
  */
 class NodeFactory
 {
-    using ConstructorCallback = std::function<void*(const std::string&, const UUID&, std::shared_ptr<Env>)>;
+    using ConstructorCallback = std::function<void*(const UUID&, const std::string&, std::shared_ptr<Env>)>;
 
   public:
     virtual ~NodeFactory() = default;
 
+    /**
+     * @brief Registers a node's construction method by it's friendly name and a category.
+     *
+     * @tparam T The node type to register.
+     * @param category The category under which the name will be registered.
+     * @param name The friendly name of the node to register it under.
+     */
     template<concepts::NodeType T>
-    [[deprecated]] void RegisterClass(const std::string& category);
-
-    template<concepts::NodeType T>
-    void RegisterClass(const std::string& category, const std::string& name);
+    void RegisterNodeClass(const std::string& category, const std::string& name);
 
     /**
      * @brief Creates a node based on a registered classname.
@@ -64,32 +68,104 @@ class NodeFactory
 
     std::string GetFriendlyName(const std::string& class_name) const;
 
+    /**
+     * @brief Registers unidirectional conversions to several types.
+     *
+     * @tparam From The type to convert from.
+     * @tparam To The first type to convert to.
+     * @tparam Ts The remaining types to convert to.
+     *
+     * @param converter The conversion function to use.
+     */
     template<typename From, typename To, typename... Ts>
     void RegisterUnidirectionalConversion(
         const TypeRegistry::ConversionFunc& converter = TypeRegistry::Convert<From, To>);
 
+    /**
+     * @brief Registers bidirectional conversions between several types.
+     * @tparam From The type to convert from and back into.
+     * @tparam To The first type to convert to and from.
+     * @tparam Ts The remaining types to convert to and from.
+     *
+     * @param from_to_converter The conversion function to use From to To/Ts.
+     * @param to_from_converter The conversion function to use to convert To/Ts to From.
+     */
     template<typename From, typename To, typename... Ts>
     void RegisterBidirectionalConversion(
         const TypeRegistry::ConversionFunc& from_to_converter = TypeRegistry::Convert<From, To>,
         const TypeRegistry::ConversionFunc& to_from_converter = TypeRegistry::Convert<To, From>);
 
+    /**
+     * @brief Registers conversions between all given types.
+     *
+     * @tparam From The first type to convert.
+     * @tparam To The second type to convert.
+     * @tparam Ts The remaining types to convert.
+     */
     template<typename From, typename To, typename... Ts>
     void RegisterCompleteConversion();
 
+    /**
+     * @brief Converts the given data to the specified typename.
+     *
+     * @param data The data to convert.
+     * @param to_type The name of the type to convert to.
+     *
+     * @returns The converted data.
+     */
     SharedNodeData Convert(const SharedNodeData& data, std::string_view to_type);
 
+    /**
+     * @brief Converts the given data to the specified type.
+     *
+     * @tparam To The type to convert to.
+     * @param data The data to convert.
+     *
+     * @returns The converted data.
+     */
     template<typename To>
     TSharedNodeData<To> Convert(const SharedNodeData& data);
 
+    /**
+     * @brief Check if given types have a registered conversion.
+     *
+     * @param from_type The type name to convert from.
+     * @param to_type The type name to convert to.
+     *
+     * @returns true if \p from_type is convertible to \p to_type, false otherwise.
+     */
     bool IsConvertible(std::string_view from_type, std::string_view to_type) const;
 
+    /**
+     * @brief Check if given types have a registered conversion.
+     *
+     * @tparam To The type to convert to.
+     * @param from_type The type name to convert from.
+     *
+     * @returns true if \p from_type is convertible to \p To, false otherwise.
+     */
     template<typename To>
     bool IsConvertible(std::string_view from_type) const;
 
+    /**
+     * @brief Check if given types have a registered conversion.
+     *
+     * @tparam From The type to convert from.
+     * @tparam To The type to convert to.
+     *
+     * @returns true if \p From is convertible to \p To, false otherwise.
+     */
     template<typename From, typename To>
     bool IsConvertible() const;
 
+    /**
+     * @brief Alias type for the entry point function signature for modules.
+     */
     using RegisterModuleFunc = std::add_pointer_t<void FLOW_CORE_CALL(std::shared_ptr<NodeFactory>)>;
+
+    /**
+     * @brief The name of the entry point function for modules.
+     */
     static constexpr const char* RegisterModuleFuncName = "RegisterModule";
 
   protected:
@@ -111,6 +187,9 @@ class NodeFactory
     mutable std::mutex _mutex;
 };
 
+/**
+ * @brief Organised way of registering nodes under related names.
+ */
 class Category
 {
   public:
@@ -121,15 +200,24 @@ class Category
     Category(const Category& parent, const std::string& name);
 
     ~Category() = default;
-
+    /**
+     * @brief Get the factory used for registering nodes.
+     * @returns The current node factory.
+     */
     std::shared_ptr<NodeFactory> GetFactory() const noexcept { return _factory.lock(); }
 
+    /**
+     * @brief Registers a nodes construction method by it's friendly name and a category.
+     *
+     * @tparam T The node type to register.
+     * @param name The friendly name of the node to register it under.
+     */
     template<concepts::NodeType T>
-    void RegisterClass(const std::string& name) const
+    void RegisterNodeClass(const std::string& name) const
     {
         if (auto factory = _factory.lock())
         {
-            factory->RegisterClass<T>(_category_name, name);
+            factory->RegisterNodeClass<T>(_category_name, name);
         }
     }
 
@@ -139,18 +227,7 @@ class Category
 };
 
 template<concepts::NodeType T>
-void NodeFactory::RegisterClass(const std::string& category)
-{
-    std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
-
-    _constructor_map.emplace(class_name, ConstructorHelper<std::remove_cvref_t<T>>);
-    _category_map.emplace(category, class_name);
-
-    FLOW_TRACE("Registered {0}, {1}", class_name, category);
-}
-
-template<concepts::NodeType T>
-void NodeFactory::RegisterClass(const std::string& category, const std::string& name)
+void NodeFactory::RegisterNodeClass(const std::string& category, const std::string& name)
 {
     std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
 

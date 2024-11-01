@@ -1,11 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-if(PROJECT_NAME)
-  option(flow-core_BUILD_TESTS "Build tests for flow-core" OFF)
-else()
-  option(flow-core_BUILD_TESTS "Build tests for flow-core" ON)
-endif()
-
 project(flow-core VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)

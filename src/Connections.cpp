@@ -20,6 +20,17 @@ void Connections::Remove(const UUID& uuid)
 {
     std::lock_guard<std::mutex> _(_mutex);
 
+    auto conn_it =
+        std::find_if(_connections.begin(), _connections.end(), [&](const auto& c) { return c.second->ID() == uuid; });
+    if (conn_it == _connections.end()) return;
+
+    _connections.erase(conn_it);
+}
+
+void Connections::RemoveByNodeID(const UUID& uuid)
+{
+    std::lock_guard<std::mutex> _(_mutex);
+
     auto [begin, end] = _connections.equal_range(uuid);
     if (begin == end) return;
 
@@ -39,7 +50,7 @@ void Connections::Remove(const UUID& uuid, const UUID& end_uuid)
     _connections.erase(found);
 }
 
-void Connections::Erase() noexcept
+void Connections::Clear() noexcept
 {
     std::lock_guard<std::mutex> _(_mutex);
     _connections.clear();

@@ -54,7 +54,7 @@ std::array<std::byte, 16> UUIDFromString(const std::string& uuid_str)
     HRESULT hr = CLSIDFromString(uuid_w.c_str(), (LPCLSID)&guid);
     if (hr != S_OK)
     {
-        throw std::invalid_argument("Bad UUID string");
+        throw std::invalid_argument("Bad UUID string: " + uuid_str);
     }
 
     return {
