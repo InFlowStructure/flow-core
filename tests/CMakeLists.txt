@@ -8,11 +8,11 @@ enable_testing()
 add_executable(
   flow_core_tests
 
-  type_name_test.cpp
-  indexable_name_test.cpp
-
-  node_test.cpp
+  factory_test.cpp
   graph_test.cpp
+  indexable_name_test.cpp
+  node_test.cpp
+  type_name_test.cpp
 )
 
 if(MSVC)

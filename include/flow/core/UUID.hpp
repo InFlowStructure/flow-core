@@ -38,6 +38,10 @@ class UUID
 
     constexpr auto operator<=>(const UUID& other) const = default;
 
+    /**
+     * @brief Swap the value of the UUID with another.
+     * @param other The other UUID to swap values with.
+     */
     constexpr void swap(UUID& other) { _id.swap(other._id); }
 
   private:
@@ -55,14 +59,14 @@ class UUID
 
 FLOW_NAMESPACE_END
 
-template<>
-struct std::hash<FLOW_NAMESPACE::UUID>
-{
-    size_t operator()(const FLOW_NAMESPACE::UUID& id) const { return id.hash(); }
-};
-
 namespace std
 {
+template<>
+struct hash<FLOW_NAMESPACE::UUID>
+{
+    std::size_t operator()(const FLOW_NAMESPACE::UUID& id) const { return id.hash(); }
+};
+
 template<>
 inline void swap<FLOW_NAMESPACE::UUID>(FLOW_NAMESPACE::UUID& lhs, FLOW_NAMESPACE::UUID& rhs) noexcept
 {

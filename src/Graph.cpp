@@ -103,14 +103,14 @@ void Graph::RemoveNode(const SharedNode& node)
 {
     if (!node) return;
 
-    RemoveNodeByUUID(node->ID());
+    RemoveNodeByID(node->ID());
 }
 
-void Graph::RemoveNodeByUUID(const UUID& uuid)
+void Graph::RemoveNodeByID(const UUID& uuid)
 {
     std::lock_guard _(_nodes_mutex);
 
-    _connections.Remove(uuid);
+    _connections.RemoveByNodeID(uuid);
 
     auto found = _nodes.find(uuid);
     if (found != _nodes.end())
@@ -376,13 +376,6 @@ void from_json(const json& j, Graph& g)
             std::string(el.value().contains("in_key") ? el.value()["in_key"] : el.value()["in_var_name"])};
         IndexableName outKey{
             std::string(el.value().contains("out_key") ? el.value()["out_key"] : el.value()["out_var_name"])};
-
-        // Handle Legacy flow json
-        if (j.contains("nodes") && j["nodes"][0].contains("model"))
-        {
-            std::swap(inUUID, outUUID);
-            std::swap(inKey, outKey);
-        }
 
         g.ConnectNodes(inUUID, inKey, outUUID, outKey);
     }

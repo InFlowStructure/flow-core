@@ -71,7 +71,7 @@ TEST(GraphTest, RemoveNodes)
 
     EXPECT_EQ(graph->Size(), 1);
 
-    graph->RemoveNodeByUUID(node2->ID());
+    graph->RemoveNodeByID(node2->ID());
 
     EXPECT_EQ(graph->Size(), 0);
 }

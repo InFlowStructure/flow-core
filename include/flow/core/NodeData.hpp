@@ -108,8 +108,6 @@ struct TypeName<T> : TypeName<EnumAsByte<T>>
 {
 };
 
-using NodeDataType = std::string_view;
-
 /**
  * @brief Interface for node data.
  */
@@ -122,7 +120,7 @@ class INodeData
      * @brief String of the data type currently held.
      * @returns A string view of the typename of the held data.
      */
-    virtual constexpr NodeDataType Type() const = 0;
+    virtual constexpr std::string_view Type() const = 0;
 
     /**
      * @brief Get the string representation of the current data's value.
@@ -231,7 +229,7 @@ class NodeData : public INodeData
     constexpr void Set(const T& value) { _value = value; }
     constexpr void Set(T&& value) { _value = std::move(value); }
 
-    virtual constexpr NodeDataType Type() const noexcept final { return TypeName_v<T>; }
+    virtual constexpr std::string_view Type() const noexcept final { return TypeName_v<T>; }
 
     std::string ToString() const final
     try
@@ -311,7 +309,7 @@ class NodeData<T&> : public INodeData
     [[nodiscard]] constexpr T& Get() { return _value; }
     [[nodiscard]] constexpr const T& Get() const { return _value; }
 
-    virtual constexpr NodeDataType Type() const final { return TypeName_v<T>; }
+    virtual constexpr std::string_view Type() const final { return TypeName_v<T>; }
 
     std::string ToString() const final
     try

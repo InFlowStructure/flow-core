@@ -11,6 +11,10 @@
 
 FLOW_NAMESPACE_START
 
+/**
+ * @brief Compile time type that creates a string representation of a C++ type.
+ * @tparam T The type to get a string representation of.
+ */
 template<typename T>
 struct TypeName;
 
@@ -51,6 +55,9 @@ constexpr std::size_t wrapped_type_name_suffix_length()
 template<typename T>
 struct TypeName
 {
+    /**
+     * @brief The string representation of the given type.
+     */
     static constexpr std::string_view value = [] {
         constexpr auto wrapped_name    = detail::wrapped_type_name<typename std::remove_cvref_t<T>>();
         constexpr auto prefix_length   = detail::wrapped_type_name_prefix_length();
@@ -83,6 +90,10 @@ constexpr bool operator==(const TypeName<T>& type_name, const std::string_view& 
     return type_name.value == type_string;
 }
 
+/**
+ * @brief Helper method for retrieving the value of a TypeName to save line space.
+ * @tparam T The type to get a string representation of.
+ */
 template<typename T>
 static constexpr std::string_view TypeName_v = TypeName<T>::value;
 

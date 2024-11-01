@@ -30,7 +30,7 @@ class Graph
     void AddNode(SharedNode node);
 
     void RemoveNode(const SharedNode& node);
-    void RemoveNodeByUUID(const UUID& uuid);
+    void RemoveNodeByID(const UUID& uuid);
 
     [[nodiscard]] SharedNode GetNode(const UUID& uuid) const;
     [[nodiscard]] const Connections& GetConnections() const noexcept { return _connections; }
@@ -44,7 +44,7 @@ class Graph
     [[nodiscard]] std::vector<SharedNode> GetLeafNodes() const;
     [[nodiscard]] std::vector<SharedNode> GetOrphanNodes() const;
 
-    void Clear() noexcept { _connections.Erase(), _nodes.clear(); }
+    void Clear() noexcept { _connections.Clear(), _nodes.clear(); }
 
     SharedConnection ConnectNodes(const UUID& in, const IndexableName& in_port_key, const UUID& out,
                                   const IndexableName& out_port_key);
