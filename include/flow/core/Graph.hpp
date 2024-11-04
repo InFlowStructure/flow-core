@@ -5,6 +5,7 @@
 
 #include "Connections.hpp"
 #include "Core.hpp"
+#include "Event.hpp"
 #include "IndexableName.hpp"
 #include "Node.hpp"
 
@@ -58,6 +59,9 @@ class Graph
 
     friend void to_json(json& j, const Graph& g);
     friend void from_json(const json& j, Graph& g);
+
+  public:
+    EventDispatcher<const std::exception&> OnError;
 
   protected:
     mutable std::mutex _nodes_mutex;

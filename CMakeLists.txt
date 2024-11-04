@@ -11,61 +11,69 @@ elseif(MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 endif()
 
-find_package(nlohmann_json CONFIG QUIET)
-if (NOT nlohmann_json_FOUND)
-  include(FetchContent)
-  FetchContent_Declare(
-    nlohmann_json OVERRIDE_FIND_PACKAGE
-    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-  )
-  FetchContent_MakeAvailable(nlohmann_json)
-endif()
+find_package(nlohmann_json REQUIRED)
 
 add_subdirectory(third_party)
 
-add_library(${PROJECT_NAME} SHARED
+set(flow-core_HEADERS_DIR "${CMAKE_CURRENT_LIST_DIR}/include")
+file(GLOB flow-core_HEADERS "${flow-core_HEADERS_DIR}/flow/core/*.hpp")
+file(GLOB thread_pool_HEADERS "${thread_pool_SOURCE_DIR}/include/*.hpp")
+list(APPEND ${flow-core_HEADERS} ${thread_pool_HEADERS})
+
+add_library(flow-core SHARED
   src/Connection.cpp
   src/Connections.cpp
   src/Env.cpp
   src/Graph.cpp
-  src/Log.cpp
   src/Node.cpp
   src/NodeFactory.cpp
   src/Port.cpp
   src/TypeConversion.cpp
   src/UUID.cpp
+
+  ${flow-core_HEADERS}
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${thread_pool_SOURCE_DIR}/include)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/flow/core)
+add_library(flow-core::flow-core ALIAS flow-core)
+
+target_include_directories(flow-core
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  PRIVATE
+    ${thread_pool_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/flow/core
+)
 
 if(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-  target_compile_options(${PROJECT_NAME} PRIVATE /W4)
-  target_link_libraries(${PROJECT_NAME} PUBLIC
+  target_compile_options(flow-core PRIVATE /W4)
+  target_link_libraries(flow-core PUBLIC
     nlohmann_json::nlohmann_json
-    spdlog::spdlog_header_only
-  )
-elseif(APPLE)
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
-  target_link_libraries(${PROJECT_NAME} PUBLIC
-    "-framework CoreFoundation"
-    pthread
-
-    nlohmann_json::nlohmann_json
-    spdlog::spdlog_header_only
   )
 else()
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
-  target_link_libraries(${PROJECT_NAME} PUBLIC
-    dl
-    pthread
-    uuid
+  target_compile_options(flow-core PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  if(APPLE)
+    target_link_libraries(flow-core PUBLIC
+      "-framework CoreFoundation"
+      pthread
 
-    nlohmann_json::nlohmann_json
-    spdlog::spdlog_header_only
-  )
+      nlohmann_json::nlohmann_json
+    )
+  else()
+    target_link_libraries(flow-core PUBLIC
+      dl
+      pthread
+      uuid
+
+      nlohmann_json::nlohmann_json
+    )
+  endif()
 endif()
+
+# -----------------------------------------------------------------------------
+# Tests
+# -----------------------------------------------------------------------------
 
 if (flow-core_BUILD_TESTS)
   enable_testing()
@@ -84,4 +92,41 @@ if (flow-core_BUILD_TESTS)
   endif()
 
   add_subdirectory(tests)
+endif()
+
+# -----------------------------------------------------------------------------
+# Install
+# -----------------------------------------------------------------------------
+
+if(flow-core_INSTALL)
+  set(export_destination "${CMAKE_INSTALL_LIBDIR}/cmake/flow-core")
+
+  # Install required headers
+  install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+  install(DIRECTORY ${thread_pool_SOURCE_DIR}/include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+  install(TARGETS flow-core
+    EXPORT flow-core
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  )
+
+  export(TARGETS flow-core
+    NAMESPACE flow-core::
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/flow-coreTargets.cmake"
+  )
+  install(EXPORT flow-core DESTINATION ${export_destination} NAMESPACE flow-core:: FILE "flow-coreTargets.cmake")
+
+  include(CMakePackageConfigHelpers)
+  configure_package_config_file(
+    "${CMAKE_CURRENT_LIST_DIR}/cmake/flow-coreConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/flow-coreConfig.cmake"
+    INSTALL_DESTINATION ${export_destination}
+  )
+
+  install(
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/flow-coreConfig.cmake"
+    DESTINATION ${export_destination}
+  )
 endif()
