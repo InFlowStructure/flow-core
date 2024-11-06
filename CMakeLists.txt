@@ -11,9 +11,21 @@ elseif(MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 endif()
 
-find_package(nlohmann_json REQUIRED)
+# -----------------------------------------------------------------------------
+# Dependencies
+# -----------------------------------------------------------------------------
+
+option(flow-core_US_EXTERNAL_JSON "Use an external JSON library" OFF)
+
+if (flow-core_US_EXTERNAL_JSON)
+    find_package(nlohmann_json 3.11.3 REQUIRED)
+endif()
 
 add_subdirectory(third_party)
+
+# -----------------------------------------------------------------------------
+# Library
+# -----------------------------------------------------------------------------
 
 set(flow-core_HEADERS_DIR "${CMAKE_CURRENT_LIST_DIR}/include")
 file(GLOB flow-core_HEADERS "${flow-core_HEADERS_DIR}/flow/core/*.hpp")
@@ -48,9 +60,7 @@ target_include_directories(flow-core
 if(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
   target_compile_options(flow-core PRIVATE /W4)
-  target_link_libraries(flow-core PUBLIC
-    nlohmann_json::nlohmann_json
-  )
+  target_link_libraries(flow-core PRIVATE nlohmann_json::nlohmann_json)
 else()
   target_compile_options(flow-core PRIVATE -Wall -Wextra -Wpedantic -Werror)
   if(APPLE)
