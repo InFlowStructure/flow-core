@@ -4,9 +4,6 @@
 #include "Node.hpp"
 
 #include "Env.hpp"
-#include "Log.hpp"
-
-#include <spdlog/spdlog.h>
 
 #include <memory>
 #include <stdarg.h>
@@ -28,12 +25,10 @@ try
 }
 catch (const std::exception& e)
 {
-    FLOW_ERROR("Caught exception while running Compute for node '{0}': {1}", std::string(ID()), e.what());
     OnError.Broadcast(e);
 }
 catch (...)
 {
-    FLOW_ERROR("Caught unknown exception while running Compute for node '{0}'", std::string(ID()));
     OnError.Broadcast(std::exception());
 }
 

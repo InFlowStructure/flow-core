@@ -5,13 +5,10 @@
 
 #include "Concepts.hpp"
 #include "Core.hpp"
-#include "Log.hpp"
 #include "Node.hpp"
 #include "TypeConversion.hpp"
 #include "TypeName.hpp"
 #include "UUID.hpp"
-
-#include <spdlog/spdlog.h>
 
 #include <cstdlib>
 #include <functional>
@@ -234,8 +231,6 @@ void NodeFactory::RegisterNodeClass(const std::string& category, const std::stri
     _constructor_map.emplace(class_name, ConstructorHelper<std::remove_cvref_t<T>>);
     _category_map.emplace(category, class_name);
     _friendly_names.emplace(class_name, name);
-
-    FLOW_TRACE("Registered {0}, {1}", class_name, category);
 }
 
 template<concepts::NodeType T>
@@ -285,12 +280,3 @@ bool NodeFactory::IsConvertible() const
 }
 
 FLOW_NAMESPACE_END
-
-#define REGISTER_NODES(Extension)                                                                                      \
-    extern "C"                                                                                                         \
-    {                                                                                                                  \
-        namespace Extension                                                                                            \
-        {                                                                                                              \
-        void RegisterModule(std::shared_ptr<NodeFactory>);                                                             \
-        }                                                                                                              \
-    }

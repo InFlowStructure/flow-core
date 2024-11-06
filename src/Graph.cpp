@@ -5,10 +5,7 @@
 
 #include "Env.hpp"
 #include "IndexableName.hpp"
-#include "Log.hpp"
 #include "NodeFactory.hpp"
-
-#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <set>
@@ -79,8 +76,7 @@ void Graph::Visit(const VisitorFunction& visitor)
 
     if (visited_nodes.size() != _nodes.size())
     {
-        FLOW_CRITICAL("Failed to visit {0} nodes: visited={1}", _nodes.size(), visited_nodes.size());
-        throw std::runtime_error("Failed to visit some nodes in the graph");
+        OnError.Broadcast(std::runtime_error("Failed to visit some nodes in the graph"));
     }
 }
 
@@ -281,8 +277,6 @@ void Graph::PropagateConnectionsData(const UUID& id, const IndexableName& key, S
                 auto node = GetNode(conn->EndNodeID());
                 if (!node)
                 {
-                    FLOW_ERROR("Failed to find node '{0}' for connection '{1}, skipping propagation",
-                               std::string(conn->EndNodeID()), std::string(conn->ID()));
                     return;
                 }
 
@@ -294,7 +288,7 @@ void Graph::PropagateConnectionsData(const UUID& id, const IndexableName& key, S
             }
             catch (const std::exception& e)
             {
-                FLOW_ERROR("Exception caught while propagating connection data: {0}", e.what());
+                OnError.Broadcast(e);
             }
         });
     }
@@ -355,16 +349,11 @@ void from_json(const json& j, Graph& g)
 
         if (!node)
         {
-            FLOW_ERROR("Failed to create object for class {0}", std::string(node_json["class"]));
             continue;
         }
 
-        FLOW_TRACE("Loading node: {0}", std::string(node->ID()));
-
         node->Restore(node_json);
         g.AddNode(node);
-
-        FLOW_INFO("Loaded node: {0}", std::string(node->ID()));
     }
 
     const json& connections = j["connections"];

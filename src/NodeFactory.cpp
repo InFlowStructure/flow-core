@@ -4,10 +4,7 @@
 #include "NodeFactory.hpp"
 
 #include "Env.hpp"
-#include "Log.hpp"
 #include "Node.hpp"
-
-#include <spdlog/spdlog.h>
 
 FLOW_NAMESPACE_START
 
@@ -17,7 +14,6 @@ SharedNode NodeFactory::CreateNode(const std::string& className, const UUID& uui
     auto found = _constructor_map.find(className);
     if (found == _constructor_map.end())
     {
-        FLOW_ERROR("NodeFactory::CreateNode() - unable to find object for class: {0}", className);
         return nullptr;
     }
 

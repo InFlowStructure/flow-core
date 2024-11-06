@@ -27,7 +27,10 @@ target_link_libraries(
   GTest::gtest_main
 )
 
-target_include_directories(flow_core_tests PRIVATE ../include/flow/core)
+target_include_directories(flow_core_tests PRIVATE
+  ../include/flow/core
+  ${thread_pool_SOURCE_DIR}/include
+)
 
 if(MSVC)
   add_custom_command(TARGET flow_core_tests POST_BUILD
