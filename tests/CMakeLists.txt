@@ -3,7 +3,18 @@ cmake_minimum_required(VERSION 3.21)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-enable_testing()
+find_package(GTest CONFIG QUIET)
+if (NOT GTest_FOUND)
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest OVERRIDE_FIND_PACKAGE
+    URL https://github.com/google/googletest/releases/download/v1.15.2/googletest-1.15.2.tar.gz
+    GIT_TAG v1.15.2
+  )
+
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
+endif()
 
 add_executable(
   flow_core_tests

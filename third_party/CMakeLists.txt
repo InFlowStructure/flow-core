@@ -1,4 +1,4 @@
-if (NOT flow-core_US_EXTERNAL_JSON)
+if (NOT flow-core_USE_EXTERNAL_JSON)
     set(JSON_BuildTests OFF CACHE INTERNAL "")
     add_subdirectory(json)
 endif()

@@ -15,10 +15,12 @@ endif()
 # Dependencies
 # -----------------------------------------------------------------------------
 
-option(flow-core_US_EXTERNAL_JSON "Use an external JSON library" OFF)
+option(flow-core_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 
-if (flow-core_US_EXTERNAL_JSON)
+if (flow-core_USE_EXTERNAL_JSON)
     find_package(nlohmann_json 3.11.3 REQUIRED)
+else()
+  set(JSON_INSTALL ${flow-core_INSTALL})
 endif()
 
 add_subdirectory(third_party)
@@ -32,7 +34,7 @@ file(GLOB flow-core_HEADERS "${flow-core_HEADERS_DIR}/flow/core/*.hpp")
 file(GLOB thread_pool_HEADERS "${thread_pool_SOURCE_DIR}/include/*.hpp")
 list(APPEND ${flow-core_HEADERS} ${thread_pool_HEADERS})
 
-add_library(flow-core SHARED
+add_library(${PROJECT_NAME} SHARED
   src/Connection.cpp
   src/Connections.cpp
   src/Env.cpp
@@ -46,11 +48,12 @@ add_library(flow-core SHARED
   ${flow-core_HEADERS}
 )
 
-add_library(flow-core::flow-core ALIAS flow-core)
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-target_include_directories(flow-core
+target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${thread_pool_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   PRIVATE
     ${thread_pool_SOURCE_DIR}/include
@@ -59,19 +62,19 @@ target_include_directories(flow-core
 
 if(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-  target_compile_options(flow-core PRIVATE /W4)
-  target_link_libraries(flow-core PUBLIC nlohmann_json::nlohmann_json)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+  target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 else()
-  target_compile_options(flow-core PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
   if(APPLE)
-    target_link_libraries(flow-core PUBLIC
+    target_link_libraries(${PROJECT_NAME} PUBLIC
       "-framework CoreFoundation"
       pthread
 
       nlohmann_json::nlohmann_json
     )
   else()
-    target_link_libraries(flow-core PUBLIC
+    target_link_libraries(${PROJECT_NAME} PUBLIC
       dl
       pthread
       uuid
@@ -82,61 +85,51 @@ else()
 endif()
 
 # -----------------------------------------------------------------------------
-# Tests
-# -----------------------------------------------------------------------------
-
-if (flow-core_BUILD_TESTS)
-  enable_testing()
-
-  find_package(GTest CONFIG QUIET)
-  if (NOT GTest_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-      googletest OVERRIDE_FIND_PACKAGE
-      URL https://github.com/google/googletest/releases/download/v1.15.2/googletest-1.15.2.tar.gz
-      GIT_TAG v1.15.2
-    )
-
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
-  endif()
-
-  add_subdirectory(tests)
-endif()
-
-# -----------------------------------------------------------------------------
 # Install
 # -----------------------------------------------------------------------------
 
 if(flow-core_INSTALL)
-  set(export_destination "${CMAKE_INSTALL_LIBDIR}/cmake/flow-core")
+  set(export_destination "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+  set(export_targets ${PROJECT_NAME})
 
-  # Install required headers
+  if (NOT flow-core_USE_EXTERNAL_JSON)
+    list(APPEND export_targets nlohmann_json)
+  endif()
+
   install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
   install(DIRECTORY ${thread_pool_SOURCE_DIR}/include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
-  install(TARGETS flow-core
-    EXPORT flow-core
+  install(TARGETS ${export_targets}
+    EXPORT ${PROJECT_NAME}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 
-  export(TARGETS flow-core
-    NAMESPACE flow-core::
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/flow-coreTargets.cmake"
+  export(TARGETS ${export_targets}
+    NAMESPACE ${PROJECT_NAME}::
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
   )
-  install(EXPORT flow-core DESTINATION ${export_destination} NAMESPACE flow-core:: FILE "flow-coreTargets.cmake")
+  install(EXPORT ${PROJECT_NAME} DESTINATION ${export_destination} NAMESPACE ${PROJECT_NAME}:: FILE "${PROJECT_NAME}Targets.cmake")
 
   include(CMakePackageConfigHelpers)
   configure_package_config_file(
-    "${CMAKE_CURRENT_LIST_DIR}/cmake/flow-coreConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/flow-coreConfig.cmake"
+    "${CMAKE_CURRENT_LIST_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     INSTALL_DESTINATION ${export_destination}
   )
 
   install(
-    FILES "${CMAKE_CURRENT_BINARY_DIR}/flow-coreConfig.cmake"
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     DESTINATION ${export_destination}
   )
+endif()
+
+# -----------------------------------------------------------------------------
+# Tests
+# -----------------------------------------------------------------------------
+
+if (flow-core_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
 endif()
