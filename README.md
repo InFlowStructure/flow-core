@@ -17,10 +17,29 @@ To build tests, configure the build directory with the following
 cmake -B build -Dflow-core_BUILD_TESTS=ON
 ```
 
+To use JSON installed on your system instead of the submodule:
+```bash
+cmake -B build -Dflow-core_USE_EXTERNAL_JSON=ON
+```
+
+## Installing
+
+To install, configure the cmake build as follows:
+```bash
+cmake -B build -Dflow-core_INSTALL=ON
+```
+Then, simply build the project normally, then run one of
+```bash
+cmake --install build
+```
+
+> [!TIP]
+> Try adding the `--config` flag with the appropriate build type.
+
 ## Dependencies
 
 This project depends on the following open source projects:
-- [spdlog](https://github.com/gabime/spdlog)
+- [nlohmann_json](https://github.com/nlohmann/json)
 - [thread-pool](https://github.com/bshoshany/thread-pool)
 
 The documentation for this project uses [doxygen-aesome-css](https://github.com/jothepro/doxygen-awesome-css).
