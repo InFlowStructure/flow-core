@@ -16,11 +16,7 @@ endif()
 # -----------------------------------------------------------------------------
 
 option(flow-core_BUILD_TESTS "Build tests - requires gtest" OFF)
-
-# -----------------------------------------------------------------------------
-# Dependencies
-# -----------------------------------------------------------------------------
-
+option(flow-core_INSTALL "Add installation targets" OFF)
 option(flow-core_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 
 if (flow-core_USE_EXTERNAL_JSON)
@@ -51,7 +47,7 @@ add_library(${PROJECT_NAME} SHARED
   src/TypeConversion.cpp
   src/UUID.cpp
 
-#  ${flow-core_HEADERS}
+  ${flow-core_HEADERS}
 )
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
