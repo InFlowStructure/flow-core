@@ -19,8 +19,12 @@ option(flow-core_BUILD_TESTS "Build tests - requires gtest" OFF)
 option(flow-core_INSTALL "Add installation targets" OFF)
 option(flow-core_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 
+# -----------------------------------------------------------------------------
+# Dependencies
+# -----------------------------------------------------------------------------
+
 if (flow-core_USE_EXTERNAL_JSON)
-    find_package(nlohmann_json 3.11.3 REQUIRED)
+  find_package(nlohmann_json 3.11.3 REQUIRED)
 else()
   set(JSON_INSTALL ${flow-core_INSTALL})
 endif()
@@ -62,28 +66,25 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/include/flow/core
 )
 
-if(MSVC)
+if(APPLE)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  target_link_libraries(${PROJECT_NAME} PUBLIC
+    "-framework CoreFoundation"
+    pthread
+    nlohmann_json::nlohmann_json
+  )
+elseif(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
   target_compile_options(${PROJECT_NAME} PRIVATE /W4)
   target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 else()
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
-  if(APPLE)
-    target_link_libraries(${PROJECT_NAME} PUBLIC
-      "-framework CoreFoundation"
-      pthread
-
-      nlohmann_json::nlohmann_json
-    )
-  else()
-    target_link_libraries(${PROJECT_NAME} PUBLIC
-      dl
-      pthread
-      uuid
-
-      nlohmann_json::nlohmann_json
-    )
-  endif()
+  target_link_libraries(${PROJECT_NAME} PUBLIC
+    dl
+    pthread
+    uuid
+    nlohmann_json::nlohmann_json
+  )
 endif()
 
 # -----------------------------------------------------------------------------
