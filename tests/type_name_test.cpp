@@ -20,7 +20,13 @@ TEST(TypeNameTest, LanguageTypes)
     EXPECT_EQ(TypeName<long long int>::value, "long long int");
     EXPECT_EQ(TypeName<long double>::value, "long double");
 #elif defined(FLOW_WINDOWS)
-    // TODO: Add windows expected types
+    EXPECT_EQ(TypeName<short>::value, "short");
+    EXPECT_EQ(TypeName<long>::value, "long");
+    EXPECT_EQ(TypeName<long long>::value, "__int64");
+    EXPECT_EQ(TypeName<short int>::value, "short");
+    EXPECT_EQ(TypeName<long int>::value, "long");
+    EXPECT_EQ(TypeName<long long int>::value, "__int64");
+    EXPECT_EQ(TypeName<long double>::value, "long double");
 #elif defined(FLOW_APPLE)
     EXPECT_EQ(TypeName<short>::value, "short");
     EXPECT_EQ(TypeName<long>::value, "long");
