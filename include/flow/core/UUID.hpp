@@ -8,6 +8,7 @@
 #include <array>
 #include <bit>
 #include <string>
+#include <cstdint>
 
 FLOW_NAMESPACE_START
 

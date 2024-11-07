@@ -12,6 +12,12 @@ elseif(MSVC)
 endif()
 
 # -----------------------------------------------------------------------------
+# Options
+# -----------------------------------------------------------------------------
+
+option(flow-core_BUILD_TESTS "Build tests - requires gtest" OFF)
+
+# -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
 
@@ -45,7 +51,7 @@ add_library(${PROJECT_NAME} SHARED
   src/TypeConversion.cpp
   src/UUID.cpp
 
-  ${flow-core_HEADERS}
+#  ${flow-core_HEADERS}
 )
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
