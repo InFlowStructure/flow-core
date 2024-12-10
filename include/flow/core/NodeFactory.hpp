@@ -262,7 +262,7 @@ void NodeFactory::RegisterNodeClass(const std::string& category, const std::stri
 template<concepts::NodeType T>
 void NodeFactory::UnregisterNodeClass(const std::string& category)
 {
-    const std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
+    const std::string class_name{TypeName_v<std::remove_cvref_t<T>>};
     return UnregisterNodeClass(category, class_name);
 }
 
