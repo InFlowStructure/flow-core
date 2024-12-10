@@ -209,15 +209,9 @@ class Category
     Category()                = delete;
     Category(const Category&) = delete;
     Category(Category&&)      = delete;
-    Category(std::shared_ptr<NodeFactory> factory, const std::string& name);
+    Category(const std::string& name);
     Category(const Category& parent, const std::string& name);
-
     ~Category() = default;
-    /**
-     * @brief Get the factory used for registering nodes.
-     * @returns The current node factory.
-     */
-    std::shared_ptr<NodeFactory> GetFactory() const noexcept { return _factory.lock(); }
 
     /**
      * @brief Registers a nodes construction method by it's friendly name and a category.
@@ -226,28 +220,30 @@ class Category
      * @param name The friendly name of the node to register it under.
      */
     template<concepts::NodeType T>
-    void RegisterNodeClass(const std::string& name) const
+    void RegisterNodeClass(const std::string& name)
     {
-        if (auto factory = _factory.lock())
+        _classes.insert(std::make_pair(std::string{TypeName_v<T>}, name));
+    }
+
+    template<concepts::NodeType T>
+    void Register(const std::shared_ptr<NodeFactory>& factory)
+    {
+        for (const auto& [_, friendly_name] : _classes)
         {
-            factory->RegisterNodeClass<T>(_category_name, name);
-            _classes.push_back(name);
+            factory->RegisterNodeClass<T>(_category_name, friendly_name);
         }
     }
 
     template<concepts::NodeType T>
-    void UnregisterNodeClass() const
+    void Unregister(const std::shared_ptr<NodeFactory>& factory) const
     {
-        if (auto factory = _factory.lock())
-        {
-            factory->UnregisterNodeClass<T>(_category_name);
-        }
+        factory->UnregisterNodeClass<T>(_category_name);
     }
 
   private:
     std::weak_ptr<NodeFactory> _factory;
     std::string _category_name;
-    std::vector<std::string> _classes;
+    std::map<std::string, std::string> _classes;
 
     friend NodeFactory;
 };
