@@ -214,30 +214,31 @@ class Category
     ~Category() = default;
 
     /**
-     * @brief Registers a nodes construction method by it's friendly name and a category.
+     * @brief Registers a node's construction method by it's friendly name and a category.
      *
      * @tparam T The node type to register.
+     * @param factory THe factory to register to.
      * @param name The friendly name of the node to register it under.
      */
     template<concepts::NodeType T>
-    void RegisterNodeClass(const std::string& name)
+    void RegisterNodeClass(const std::shared_ptr<NodeFactory>& factory, const std::string& friendly_name)
     {
-        _classes.insert(std::make_pair(std::string{TypeName_v<T>}, name));
+        factory->RegisterNodeClass<T>(_category_name, friendly_name);
+        _classes.insert(std::make_pair(std::string{TypeName_v<T>}, friendly_name));
     }
 
+    /**
+     * @brief Unregisters a node's construction method.
+     * @tparam T The Node type to unregiter.
+     * @param factory THe factory to unregister from.
+     */
     template<concepts::NodeType T>
-    void Register(const std::shared_ptr<NodeFactory>& factory)
-    {
-        for (const auto& [_, friendly_name] : _classes)
-        {
-            factory->RegisterNodeClass<T>(_category_name, friendly_name);
-        }
-    }
-
-    template<concepts::NodeType T>
-    void Unregister(const std::shared_ptr<NodeFactory>& factory) const
+    void UnregisterNodeClass(const std::shared_ptr<NodeFactory>& factory) const
     {
         factory->UnregisterNodeClass<T>(_category_name);
+
+        const std::string class_name{TypeName_v<T>};
+        std::erase_if(_classes, [&](const auto& c) { return c == class_name; });
     }
 
   private:
