@@ -63,7 +63,7 @@ void Env::LoadModule(const std::filesystem::path& file)
 
     auto register_func = dlsym(handle, NodeFactory::RegisterModuleFuncName);
 #endif
-    if (auto RegisterModule_func = std::bit_cast<NodeFactory::RegisterModuleFunc>(register_func))
+    if (auto RegisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(register_func))
     {
         RegisterModule_func(_factory);
         _loaded_modules.emplace(new_module_file.filename().string(), std::bit_cast<void*>(handle));
@@ -91,6 +91,19 @@ void Env::LoadModules(const std::filesystem::path& extension_path)
 void Env::UnloadModule(const std::filesystem::path& module_file)
 {
     const auto& handle = _loaded_modules.at(module_file.filename().string());
+
+#ifdef FLOW_WINDOWS
+    auto unregister_func = GetProcAddress(std::bit_cast<HINSTANCE>(handle), NodeFactory::UnregisterModuleFuncName);
+#else
+    auto unregister_func = dlsym(handle, NodeFactory::UnregisterModuleFuncName);
+#endif
+    if (auto UnregisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(unregister_func))
+    {
+        UnregisterModule_func(_factory);
+        _loaded_modules.emplace(module_file.filename().string(), std::bit_cast<void*>(handle));
+        return;
+    }
+
 #ifdef FLOW_WINDOWS
     FreeLibrary(std::bit_cast<HINSTANCE>(handle));
 #else

@@ -49,6 +49,19 @@ class NodeFactory
     void RegisterNodeClass(const std::string& category, const std::string& name);
 
     /**
+     * @brief Removes a node's construction method from the factory.
+     * @tparam T The node type to unregister.
+     */
+    template<concepts::NodeType T>
+    void UnregisterNodeClass(const std::string& category);
+
+    /**
+     * @brief Removes all nodes added by the given category object.
+     * @param category The category object to cleanup.
+     */
+    void UnregisterCategory(const class Category& category);
+
+    /**
      * @brief Creates a node based on a registered classname.
      *
      * @param class_name The name of the class of node to construct. MUST be registered.
@@ -158,18 +171,21 @@ class NodeFactory
     /**
      * @brief Alias type for the entry point function signature for modules.
      */
-    using RegisterModuleFunc = std::add_pointer_t<void FLOW_CORE_CALL(std::shared_ptr<NodeFactory>)>;
+    using ModuleMethod_t = std::add_pointer_t<void FLOW_CORE_CALL(std::shared_ptr<NodeFactory>)>;
 
     /**
      * @brief The name of the entry point function for modules.
      */
-    static constexpr const char* RegisterModuleFuncName = "RegisterModule";
+    static constexpr const char* RegisterModuleFuncName   = "RegisterModule";
+    static constexpr const char* UnregisterModuleFuncName = "UnregisterModule";
 
   protected:
     template<concepts::NodeType T>
     static void* ConstructorHelper(const std::string& uuid_str, const std::string& name, std::shared_ptr<Env> env);
 
   private:
+    void UnregisterNodeClass(const std::string& category, const std::string& class_name);
+
     template<typename>
     void RegisterCompleteConversion()
     {
@@ -215,22 +231,42 @@ class Category
         if (auto factory = _factory.lock())
         {
             factory->RegisterNodeClass<T>(_category_name, name);
+            _classes.push_back(name);
+        }
+    }
+
+    template<concepts::NodeType T>
+    void UnregisterNodeClass() const
+    {
+        if (auto factory = _factory.lock())
+        {
+            factory->UnregisterNodeClass<T>(_category_name);
         }
     }
 
   private:
     std::weak_ptr<NodeFactory> _factory;
     std::string _category_name;
+    std::vector<std::string> _classes;
+
+    friend NodeFactory;
 };
 
 template<concepts::NodeType T>
 void NodeFactory::RegisterNodeClass(const std::string& category, const std::string& name)
 {
-    std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
+    const std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
 
     _constructor_map.emplace(class_name, ConstructorHelper<std::remove_cvref_t<T>>);
     _category_map.emplace(category, class_name);
     _friendly_names.emplace(class_name, name);
+}
+
+template<concepts::NodeType T>
+void NodeFactory::UnregisterNodeClass(const std::string& category)
+{
+    const std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
+    return UnregisterNodeClass(category, class_name);
 }
 
 template<concepts::NodeType T>
