@@ -138,14 +138,6 @@ class Env : public std::enable_shared_from_this<Env>
             num_blocks);
     }
 
-    template<typename T, typename F, typename... Args>
-    [[deprecated]] std::uint64_t AddTimerTask(const T&, const T&, F&&, const Args&&...)
-    {
-        return -1;
-    }
-
-    [[deprecated]] void DeleteTimerTask(const uint64_t&) {}
-
     /**
      * @brief Returns a system environment variable value.
      * @param varname The name of a system environment variable.

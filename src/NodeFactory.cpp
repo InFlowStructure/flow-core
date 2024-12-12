@@ -24,6 +24,8 @@ void NodeFactory::UnregisterNodeClass(const std::string& category, const std::st
         const auto& [cat, name] = c;
         return cat == category && name == class_name;
     });
+
+    OnNodeClassUnregistered.Broadcast(class_name);
 }
 
 SharedNode NodeFactory::CreateNode(const std::string& className, const UUID& uuid, const std::string& name,

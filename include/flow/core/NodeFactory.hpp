@@ -176,7 +176,11 @@ class NodeFactory
     /**
      * @brief The name of the entry point function for modules.
      */
-    static constexpr const char* RegisterModuleFuncName   = "RegisterModule";
+    static constexpr const char* RegisterModuleFuncName = "RegisterModule";
+
+    /**
+     * @brief The name of the exit point function for modules.
+     */
     static constexpr const char* UnregisterModuleFuncName = "UnregisterModule";
 
   protected:
@@ -190,6 +194,17 @@ class NodeFactory
     void RegisterCompleteConversion()
     {
     }
+
+  public:
+    /**
+     * @brief Event dispatcher that runs every time a new node class is registered.
+     */
+    EventDispatcher<std::string_view> OnNodeClassRegistered;
+
+    /**
+     * @brief Event dispatcher that runs every time a registered node class is unregistered.
+     */
+    EventDispatcher<std::string_view> OnNodeClassUnregistered;
 
   private:
     std::unordered_map<std::string, ConstructorCallback> _constructor_map;
@@ -257,12 +272,14 @@ void NodeFactory::RegisterNodeClass(const std::string& category, const std::stri
     _constructor_map.emplace(class_name, ConstructorHelper<std::remove_cvref_t<T>>);
     _category_map.emplace(category, class_name);
     _friendly_names.emplace(class_name, name);
+
+    OnNodeClassRegistered.Broadcast(std::string_view{class_name});
 }
 
 template<concepts::NodeType T>
 void NodeFactory::UnregisterNodeClass(const std::string& category)
 {
-    const std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
+    const std::string class_name{TypeName_v<std::remove_cvref_t<T>>};
     return UnregisterNodeClass(category, class_name);
 }
 
