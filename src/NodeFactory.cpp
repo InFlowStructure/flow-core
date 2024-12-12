@@ -8,6 +8,26 @@
 
 FLOW_NAMESPACE_START
 
+void NodeFactory::UnregisterCategory(const Category& category)
+{
+    for (const auto& [class_name, _] : category._classes)
+    {
+        UnregisterNodeClass(category._category_name, class_name);
+    }
+}
+
+void NodeFactory::UnregisterNodeClass(const std::string& category, const std::string& class_name)
+{
+    _constructor_map.erase(class_name);
+    _friendly_names.erase(class_name);
+    std::erase_if(_category_map, [&](const auto& c) {
+        const auto& [cat, name] = c;
+        return cat == category && name == class_name;
+    });
+
+    OnNodeClassUnregistered.Broadcast(class_name);
+}
+
 SharedNode NodeFactory::CreateNode(const std::string& className, const UUID& uuid, const std::string& name,
                                    std::shared_ptr<Env> env)
 {
@@ -40,13 +60,10 @@ bool NodeFactory::IsConvertible(std::string_view from_type, std::string_view to_
     return _conversion_registry.IsConvertible(from_type, to_type);
 }
 
-Category::Category(std::shared_ptr<NodeFactory> factory, const std::string& name)
-    : _factory{std::move(factory)}, _category_name{name}
-{
-}
+Category::Category(const std::string& name) : _category_name{name} {}
 
 Category::Category(const Category& parent, const std::string& name)
-    : _factory{parent._factory}, _category_name(parent._category_name + "::" + name)
+    : _category_name(parent._category_name + "::" + name)
 {
 }
 
