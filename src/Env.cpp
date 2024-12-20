@@ -39,22 +39,16 @@ void Env::LoadModule(const std::filesystem::path& file)
         _loaded_modules.erase(file.filename().string());
     }
 
-    const auto new_module_file = std::filesystem::current_path() / "modules" / file.filename();
-    if (new_module_file != file)
-    {
-        std::filesystem::copy_file(file, new_module_file, std::filesystem::copy_options::overwrite_existing);
-    }
-
 #ifdef FLOW_WINDOWS
-    HINSTANCE handle = LoadLibrary(new_module_file.string().c_str());
+    HINSTANCE handle = LoadLibrary(file.string().c_str());
     if (!handle)
     {
-        throw std::runtime_error("Error loading file: " + new_module_file.string());
+        throw std::runtime_error("Error loading file: " + file.string());
     }
 
     auto register_func = GetProcAddress(handle, NodeFactory::RegisterModuleFuncName);
 #else
-    void* handle = dlopen(new_module_file.c_str(), RTLD_LAZY);
+    void* handle = dlopen(file.c_str(), RTLD_LAZY);
     if (!handle)
     {
         throw std::runtime_error("Error loading file: " + std::string(dlerror()));
@@ -66,7 +60,7 @@ void Env::LoadModule(const std::filesystem::path& file)
     if (auto RegisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(register_func))
     {
         RegisterModule_func(_factory);
-        _loaded_modules.emplace(new_module_file.filename().string(), std::bit_cast<void*>(handle));
+        _loaded_modules.emplace(file.filename().string(), std::bit_cast<void*>(handle));
         return;
     }
 
@@ -75,7 +69,7 @@ void Env::LoadModule(const std::filesystem::path& file)
 #else
     dlclose(handle);
 #endif
-    throw std::runtime_error("Error loading symbol for RegisterModule from " + new_module_file.filename().string());
+    throw std::runtime_error("Error loading symbol for RegisterModule from " + file.filename().string());
 }
 
 void Env::LoadModules(const std::filesystem::path& extension_path)
