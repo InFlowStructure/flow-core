@@ -91,8 +91,8 @@ void Graph::AddNode(SharedNode node)
                                 this->PropagateConnectionsData(id, key, std::move(data));
                             });
 
-    UUID id = node->ID();
-    _nodes.emplace(id, std::move(node));
+    OnNodeAdded.Broadcast(node);
+    _nodes.emplace(node->ID(), std::move(node));
 }
 
 void Graph::RemoveNode(const SharedNode& node)
@@ -112,6 +112,9 @@ void Graph::RemoveNodeByID(const UUID& uuid)
     if (found != _nodes.end())
     {
         found->second->Stop();
+
+        OnNodeRemoved.Broadcast(found->second);
+
         _nodes.erase(found);
     }
 }
@@ -227,12 +230,27 @@ SharedConnection Graph::ConnectNodes(const UUID& start_id, const IndexableName& 
         PropagateConnectionsData(start_id, start_port_key, std::move(data));
     }
 
+    OnNodesConnected.Broadcast(conn);
+
     return conn;
 }
 
 void Graph::DisconnectNodes(const UUID& start_id, const IndexableName& start_port_key, const UUID& end_id,
                             const IndexableName& end_port_key)
 {
+
+    auto conns      = _connections.FindConnections(start_id, start_port_key);
+    auto found_conn = std::find_if(conns.begin(), conns.end(), [&](const auto& conn) {
+        return conn->EndNodeID() == end_id && conn->EndPortKey() == end_port_key;
+    });
+
+    if (found_conn == conns.end())
+    {
+        return;
+    }
+
+    OnNodesDisconnected.Broadcast(*found_conn);
+
     _connections.Remove(start_id, end_id);
 
     auto in_node  = GetNode(start_id);
