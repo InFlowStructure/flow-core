@@ -84,15 +84,16 @@ void Graph::AddNode(SharedNode node)
 {
     if (!node) return;
 
-    std::lock_guard _(_nodes_mutex);
+    {
+        std::lock_guard _(_nodes_mutex);
+        _nodes.emplace(node->ID(), node);
+    }
 
     node->OnEmitOutput.Bind("PropagateConnectionsData",
                             [this](const UUID& id, const IndexableName& key, SharedNodeData data) {
                                 this->PropagateConnectionsData(id, key, std::move(data));
                             });
-
     OnNodeAdded.Broadcast(node);
-    _nodes.emplace(node->ID(), std::move(node));
 }
 
 void Graph::RemoveNode(const SharedNode& node)
