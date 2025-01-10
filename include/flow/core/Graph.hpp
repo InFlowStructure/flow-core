@@ -184,6 +184,26 @@ class Graph
      */
     EventDispatcher<const std::exception&> OnError;
 
+    /**
+     * @brief Event run on Graph when a new node is added.
+     */
+    EventDispatcher<const SharedNode&> OnNodeAdded;
+
+    /**
+     * @brief Event run on Graph when a new node is removed.
+     */
+    EventDispatcher<const SharedNode&> OnNodeRemoved;
+
+    /**
+     * @brief Event run when 2 nodes are connected.
+     */
+    EventDispatcher<const SharedConnection&> OnNodesConnected;
+
+    /**
+     * @brief Event run on Graph when a connection is removed.
+     */
+    EventDispatcher<const SharedConnection&> OnNodesDisconnected;
+
   protected:
     mutable std::mutex _nodes_mutex;
 
