@@ -88,8 +88,7 @@ class NodeFactory
      * @param converter The conversion function to use.
      */
     template<typename From, typename To, typename... Ts>
-    void RegisterUnidirectionalConversion(
-        const TypeRegistry::ConversionFunc& converter = TypeRegistry::Convert<From, To>);
+    void RegisterUnidirectionalConversion();
 
     /**
      * @brief Registers bidirectional conversions between several types.
@@ -101,9 +100,7 @@ class NodeFactory
      * @param to_from_converter The conversion function to use to convert To/Ts to From.
      */
     template<typename From, typename To, typename... Ts>
-    void RegisterBidirectionalConversion(
-        const TypeRegistry::ConversionFunc& from_to_converter = TypeRegistry::Convert<From, To>,
-        const TypeRegistry::ConversionFunc& to_from_converter = TypeRegistry::Convert<To, From>);
+    void RegisterBidirectionalConversion();
 
     /**
      * @brief Registers conversions between all given types.
@@ -192,6 +189,16 @@ class NodeFactory
 
     template<typename>
     void RegisterCompleteConversion()
+    {
+    }
+
+    template<typename>
+    void RegisterUnidirectionalConversion()
+    {
+    }
+
+    template<typename>
+    void RegisterBidirectionalConversion()
     {
     }
 
@@ -290,18 +297,18 @@ void* NodeFactory::ConstructorHelper(const std::string& uuid_str, const std::str
 }
 
 template<typename From, typename To, typename... Ts>
-void NodeFactory::RegisterUnidirectionalConversion(const TypeRegistry::ConversionFunc& converter)
+void NodeFactory::RegisterUnidirectionalConversion()
 {
-    _conversion_registry.RegisterUnidirectionalConversion<From, To>(converter);
-    (_conversion_registry.RegisterUnidirectionalConversion<From, Ts>(converter), ...);
+    _conversion_registry.RegisterUnidirectionalConversion<From, To>(TypeRegistry::Convert<From, To>);
+    RegisterUnidirectionalConversion<From, Ts...>();
 }
 
 template<typename From, typename To, typename... Ts>
-void NodeFactory::RegisterBidirectionalConversion(const TypeRegistry::ConversionFunc& from_to_converter,
-                                                  const TypeRegistry::ConversionFunc& to_from_converter)
+void NodeFactory::RegisterBidirectionalConversion()
 {
-    _conversion_registry.RegisterBidirectionalConversion<From, To>(from_to_converter, to_from_converter);
-    (_conversion_registry.RegisterBidirectionalConversion<From, Ts>(from_to_converter, to_from_converter), ...);
+    _conversion_registry.RegisterBidirectionalConversion<From, To>(TypeRegistry::Convert<From, To>,
+                                                                   TypeRegistry::Convert<To, From>);
+    RegisterBidirectionalConversion<From, Ts...>();
 }
 
 template<typename From, typename To, typename... Ts>
