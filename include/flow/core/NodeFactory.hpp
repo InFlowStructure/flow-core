@@ -195,6 +195,16 @@ class NodeFactory
     {
     }
 
+    template<typename>
+    void RegisterUnidirectionalConversion()
+    {
+    }
+
+    template<typename>
+    void RegisterBidirectionalConversion()
+    {
+    }
+
   public:
     /**
      * @brief Event dispatcher that runs every time a new node class is registered.
@@ -293,7 +303,7 @@ template<typename From, typename To, typename... Ts>
 void NodeFactory::RegisterUnidirectionalConversion(const TypeRegistry::ConversionFunc& converter)
 {
     _conversion_registry.RegisterUnidirectionalConversion<From, To>(converter);
-    (_conversion_registry.RegisterUnidirectionalConversion<From, Ts>(converter), ...);
+    RegisterUnidirectionalConversion<From, Ts...>();
 }
 
 template<typename From, typename To, typename... Ts>
@@ -301,7 +311,7 @@ void NodeFactory::RegisterBidirectionalConversion(const TypeRegistry::Conversion
                                                   const TypeRegistry::ConversionFunc& to_from_converter)
 {
     _conversion_registry.RegisterBidirectionalConversion<From, To>(from_to_converter, to_from_converter);
-    (_conversion_registry.RegisterBidirectionalConversion<From, Ts>(from_to_converter, to_from_converter), ...);
+    RegisterBidirectionalConversion<From, Ts...>();
 }
 
 template<typename From, typename To, typename... Ts>
