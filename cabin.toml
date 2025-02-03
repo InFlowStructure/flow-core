@@ -1,0 +1,9 @@
+[package]
+name = "flow-core"
+version = "0.1.0"
+authors = ["Tomas Rigaux <trigaux@cisco.com>"]
+edition = "20"
+
+[dependencies]
+json = { branch = "cabin-pkg", git = "https://github.com/GhostofCookie/json.git" }
+thread_pool = { branch = "cabin-pkg", git = "https://github.com/GhostofCookie/thread-pool.git" }
