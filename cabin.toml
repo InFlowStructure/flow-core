@@ -1,0 +1,9 @@
+[package]
+name = "flow-core"
+version = "0.1.0"
+authors = ["Tomas Rigaux <trigaux@cisco.com>"]
+edition = "20"
+
+[dependencies]
+json = { git = "https://github.com/nlohmann/json.git" }
+thread_pool = { git = "https://github.com/bshoshany/thread-pool.git" }

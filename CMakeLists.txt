@@ -23,13 +23,10 @@ option(flow-core_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 # Dependencies
 # -----------------------------------------------------------------------------
 
-if (flow-core_USE_EXTERNAL_JSON)
-  find_package(nlohmann_json 3.11.3 REQUIRED)
-else()
-  set(JSON_INSTALL ${flow-core_INSTALL})
-endif()
+include(cmake/CPM.cmake)
 
-add_subdirectory(third_party)
+CPMAddPackage("gh:nlohmann/json@3.11.3")
+CPMAddPackage("gh:bshoshany/thread-pool@5.0.0")
 
 # -----------------------------------------------------------------------------
 # Library
@@ -37,8 +34,8 @@ add_subdirectory(third_party)
 
 set(flow-core_HEADERS_DIR "${CMAKE_CURRENT_LIST_DIR}/include")
 file(GLOB flow-core_HEADERS "${flow-core_HEADERS_DIR}/flow/core/*.hpp")
-file(GLOB thread_pool_HEADERS "${thread_pool_SOURCE_DIR}/include/*.hpp")
-list(APPEND ${flow-core_HEADERS} ${thread_pool_HEADERS})
+file(GLOB thread-pool_HEADERS "${thread-pool_SOURCE_DIR}/include/*.hpp")
+list(APPEND ${flow-core_HEADERS} ${thread-pool_HEADERS})
 
 add_library(${PROJECT_NAME} SHARED
   src/Connection.cpp
@@ -59,10 +56,10 @@ add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${thread_pool_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${thread-pool_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   PRIVATE
-    ${thread_pool_SOURCE_DIR}/include
+    ${thread-pool_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include/flow/core
 )
 
@@ -100,7 +97,7 @@ if(flow-core_INSTALL)
   endif()
 
   install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-  install(DIRECTORY ${thread_pool_SOURCE_DIR}/include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+  install(DIRECTORY ${thread-pool_SOURCE_DIR}/include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
   install(TARGETS ${export_targets}
     EXPORT ${PROJECT_NAME}

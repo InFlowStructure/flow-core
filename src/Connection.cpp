@@ -1,7 +1,7 @@
 // Copyright (c) 2024, Cisco Systems, Inc.
 // All rights reserved.
 
-#include "Connection.hpp"
+#include "flow/core/Connection.hpp"
 
 FLOW_NAMESPACE_START
 

@@ -34,3 +34,6 @@
 .vscode/
 build/
 docs/
+
+# Cabin package build directory
+/cabin-out

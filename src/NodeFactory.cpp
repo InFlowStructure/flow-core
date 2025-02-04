@@ -1,10 +1,10 @@
 // Copyright (c) 2024, Cisco Systems, Inc.
 // All rights reserved.
 
-#include "NodeFactory.hpp"
+#include "flow/core/NodeFactory.hpp"
 
-#include "Env.hpp"
-#include "Node.hpp"
+#include "flow/core/Env.hpp"
+#include "flow/core/Node.hpp"
 
 FLOW_NAMESPACE_START
 
