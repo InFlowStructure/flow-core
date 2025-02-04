@@ -16,7 +16,7 @@
 #include <unordered_map>
 
 using json        = nlohmann::json;
-using thread_pool = BS::thread_pool;
+using thread_pool = BS::thread_pool<>;
 
 FLOW_NAMESPACE_START
 

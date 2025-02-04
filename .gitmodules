@@ -1,9 +1,3 @@
-[submodule "third_party/thread-pool"]
-	path = third_party/thread-pool
-	url = https://github.com/bshoshany/thread-pool/
 [submodule "third_party/doxygen-awesome-css"]
 	path = third_party/doxygen-awesome-css
 	url = https://github.com/jothepro/doxygen-awesome-css.git
-[submodule "third_party/json"]
-	path = third_party/json
-	url = https://github.com/nlohmann/json.git
