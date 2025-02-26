@@ -51,8 +51,13 @@ TEST(TypeNameTest, AliasTypes)
 
 TEST(TypeNameTest, ReferenceTypes)
 {
+#ifdef FLOW_APPLE
+    EXPECT_EQ(TypeName<int&>::value, "int &");
+    EXPECT_EQ(TypeName<const int&>::value, "const int &");
+#else
     EXPECT_EQ(TypeName<int&>::value, "int&");
     EXPECT_EQ(TypeName<const int&>::value, "const int&");
+#endif
 }
 
 struct TestType;
