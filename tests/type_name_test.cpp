@@ -49,13 +49,23 @@ TEST(TypeNameTest, AliasTypes)
     EXPECT_EQ(TypeName<alias_type>::value, "int");
 }
 
-struct TestType
+TEST(TypeNameTest, ReferenceTypes)
 {
-};
+#ifdef FLOW_APPLE
+    EXPECT_EQ(TypeName<int&>::value, "int &");
+    EXPECT_EQ(TypeName<const int&>::value, "const int &");
+#else
+    EXPECT_EQ(TypeName<int&>::value, "int&");
+    EXPECT_EQ(TypeName<const int&>::value, "const int&");
+#endif
+}
+
+struct TestType;
 namespace TestNS
 {
 struct TestType;
 }
+
 TEST(TypeNameTest, CustomTypes)
 {
     EXPECT_EQ(TypeName<TestType>::value, "TestType");
