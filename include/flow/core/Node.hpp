@@ -139,11 +139,11 @@ class Node
     virtual json SaveInputs() const { return {}; }
     virtual void RestoreInputs(const json&) {}
 
-  private:
+  protected:
     void AddInput(std::string_view key, const std::string& caption, std::string_view type, SharedNodeData data);
+
     void AddOutput(std::string_view key, const std::string& caption, std::string_view type, SharedNodeData data);
 
-  protected:
     template<typename T>
     void AddInput(std::string_view key, const std::string& caption, SharedNodeData data = nullptr)
     {
@@ -162,14 +162,14 @@ class Node
         return AddOutput(key, caption, TypeName_v<T>, std::move(data));
     }
 
-    void EmitUpdate(const IndexableName& key);
+    void EmitUpdate(const IndexableName& key, const SharedNodeData& data);
 
   public:
     EventDispatcher<> OnCompute;
-    EventDispatcher<const IndexableName&> OnSetInput;
-    EventDispatcher<const IndexableName&> OnSetOutput;
+    EventDispatcher<const IndexableName&, const SharedNodeData&> OnSetInput;
+    EventDispatcher<const IndexableName&, const SharedNodeData&> OnSetOutput;
     EventDispatcher<const std::exception&> OnError;
-    EventDispatcher<const UUID&, const IndexableName&, SharedNodeData> OnEmitOutput;
+    EventDispatcher<const UUID&, const IndexableName&, const SharedNodeData&> OnEmitOutput;
 
   protected:
     mutable std::mutex _mutex;

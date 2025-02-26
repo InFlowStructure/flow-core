@@ -22,7 +22,6 @@ template<>
 struct TypeName<void>
 {
     static constexpr std::string_view value = "void";
-    static constexpr bool Check(std::string_view v) { return v == value; }
 };
 
 namespace detail
@@ -59,7 +58,7 @@ struct TypeName
      * @brief The string representation of the given type.
      */
     static constexpr std::string_view value = [] {
-        constexpr auto wrapped_name    = detail::wrapped_type_name<typename std::remove_cvref_t<T>>();
+        constexpr auto wrapped_name    = detail::wrapped_type_name<T>();
         constexpr auto prefix_length   = detail::wrapped_type_name_prefix_length();
         constexpr auto suffix_length   = detail::wrapped_type_name_suffix_length();
         constexpr auto TypeName_length = wrapped_name.length() - prefix_length - suffix_length;
@@ -75,17 +74,17 @@ struct TypeName
 template<typename T, typename U>
 constexpr bool operator==(const TypeName<T>&, const TypeName<U>&)
 {
-    return false;
-}
-
-template<typename T>
-constexpr bool operator==(const TypeName<T>&, const TypeName<T>&)
-{
-    return true;
+    return std::is_same_v<T, U>;
 }
 
 template<typename T>
 constexpr bool operator==(const TypeName<T>& type_name, const std::string_view& type_string)
+{
+    return type_name.value == type_string;
+}
+
+template<typename T>
+constexpr bool operator==(const std::string_view& type_string, const TypeName<T>& type_name)
 {
     return type_name.value == type_string;
 }

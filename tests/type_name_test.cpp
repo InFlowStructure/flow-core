@@ -49,13 +49,18 @@ TEST(TypeNameTest, AliasTypes)
     EXPECT_EQ(TypeName<alias_type>::value, "int");
 }
 
-struct TestType
+TEST(TypeNameTest, ReferenceTypes)
 {
-};
+    EXPECT_EQ(TypeName<int&>::value, "int&");
+    EXPECT_EQ(TypeName<const int&>::value, "const int&");
+}
+
+struct TestType;
 namespace TestNS
 {
 struct TestType;
 }
+
 TEST(TypeNameTest, CustomTypes)
 {
     EXPECT_EQ(TypeName<TestType>::value, "TestType");

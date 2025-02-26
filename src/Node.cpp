@@ -27,6 +27,10 @@ catch (const std::exception& e)
 {
     OnError.Broadcast(e);
 }
+catch (const std::string& e)
+{
+    OnError.Broadcast(std::runtime_error(e));
+}
 catch (...)
 {
     OnError.Broadcast(std::exception());
@@ -81,9 +85,9 @@ const SharedNodeData& Node::GetOutputData(const IndexableName& key) const { retu
 
 void Node::SetInputData(const IndexableName& key, SharedNodeData data, bool compute)
 {
-    _input_ports.at(key)->SetData(std::move(data));
+    _input_ports.at(key)->SetData(data);
 
-    OnSetInput.Broadcast(key);
+    OnSetInput.Broadcast(key, data);
 
     if (compute)
     {
@@ -93,20 +97,16 @@ void Node::SetInputData(const IndexableName& key, SharedNodeData data, bool comp
 
 void Node::SetOutputData(const IndexableName& key, SharedNodeData data, bool emit)
 {
-    _output_ports.at(key)->SetData(std::move(data), true);
+    _output_ports.at(key)->SetData(data, true);
 
-    OnSetOutput.Broadcast(key);
+    OnSetOutput.Broadcast(key, data);
 
     if (emit)
     {
-        EmitUpdate(key);
+        EmitUpdate(key, data);
     }
 }
 
-void Node::EmitUpdate(const IndexableName& key)
-{
-    auto data = GetOutputData(key);
-    OnEmitOutput.Broadcast(ID(), key, std::move(data));
-}
+void Node::EmitUpdate(const IndexableName& key, const SharedNodeData& data) { OnEmitOutput.Broadcast(ID(), key, data); }
 
 FLOW_NAMESPACE_END
