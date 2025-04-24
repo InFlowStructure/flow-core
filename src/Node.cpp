@@ -5,6 +5,8 @@
 
 #include "flow/core/Env.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <memory>
 #include <stdarg.h>
 #include <utility>
@@ -62,6 +64,10 @@ void Node::Restore(const json& p)
         RestoreInputs(p["inputs"]);
     }
 }
+
+json Node::SaveInputs() const { return {}; }
+
+void Node::RestoreInputs(const json&) {}
 
 void Node::AddInput(std::string_view key, const std::string& caption, std::string_view type, SharedNodeData data)
 {

@@ -8,7 +8,7 @@
 #include "Port.hpp"
 #include "UUID.hpp"
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <mutex>
 #include <string_view>

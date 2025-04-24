@@ -6,7 +6,7 @@
 #include "Concepts.hpp"
 #include "TypeName.hpp"
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <chrono>
 #include <memory>

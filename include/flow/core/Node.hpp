@@ -11,7 +11,7 @@
 #include "Port.hpp"
 #include "UUID.hpp"
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <mutex>
 #include <string>
@@ -136,8 +136,8 @@ class Node
   protected:
     virtual void Compute() = 0;
 
-    virtual json SaveInputs() const { return {}; }
-    virtual void RestoreInputs(const json&) {}
+    virtual json SaveInputs() const;
+    virtual void RestoreInputs(const json&);
 
   protected:
     void AddInput(std::string_view key, const std::string& caption, std::string_view type, SharedNodeData data);

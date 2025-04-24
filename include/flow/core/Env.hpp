@@ -6,11 +6,13 @@
 #include "Connection.hpp"
 #include "Core.hpp"
 #include "Graph.hpp"
+#include "Module.hpp"
 #include "UUID.hpp"
 
 #include <BS_thread_pool.hpp>
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -39,7 +41,7 @@ class Env : public std::enable_shared_from_this<Env>
     Env(const Env&) = delete;
 
     /**
-     * @brief Creator method which constructs inly shared pointers.
+     * @brief Creator method which constructs only shared pointers.
      */
     static std::shared_ptr<Env> Create(std::shared_ptr<NodeFactory> factory)
     {
@@ -153,7 +155,7 @@ class Env : public std::enable_shared_from_this<Env>
     std::unique_ptr<thread_pool> _pool;
 
     /// Keyed list of loaded module handles.
-    std::unordered_map<std::string, void*> _loaded_modules;
+    std::unordered_map<std::string, Module> _loaded_modules;
 };
 
 FLOW_NAMESPACE_END

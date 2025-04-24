@@ -17,7 +17,6 @@ endif()
 
 option(flow-core_BUILD_TESTS "Build tests - requires gtest" OFF)
 option(flow-core_INSTALL "Add installation targets" OFF)
-option(flow-core_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 
 # -----------------------------------------------------------------------------
 # Dependencies
@@ -42,6 +41,7 @@ add_library(${PROJECT_NAME} SHARED
   src/Connections.cpp
   src/Env.cpp
   src/Graph.cpp
+  src/Module.cpp
   src/Node.cpp
   src/NodeFactory.cpp
   src/Port.cpp

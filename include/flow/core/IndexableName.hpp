@@ -22,14 +22,14 @@ FLOW_NAMESPACE_START
 class IndexableName
 {
     /// The generated CRC-64 table.
-    static constexpr std::array<std::uint64_t, 256> crc_table = [] {
-        std::array<std::uint64_t, 256> table;
-        for (std::uint64_t c = 0; c < 256; ++c)
+    static constexpr std::array<std::size_t, 256> crc_table = [] {
+        std::array<std::size_t, 256> table;
+        for (std::size_t c = 0; c < 256; ++c)
         {
-            std::uint64_t crc = c;
-            for (std::uint64_t i = 0; i < 8; ++i)
+            std::size_t crc = c;
+            for (std::size_t i = 0; i < 8; ++i)
             {
-                std::uint64_t b = (crc & 1);
+                std::size_t b = (crc & 1);
                 crc >>= 1;
                 crc ^= (0 - b) & 0xc96c5795d7870f42ull;
             }
@@ -44,9 +44,9 @@ class IndexableName
      * @param value The value to reverse.
      * @returns The reversed value.
      */
-    static constexpr std::uint64_t reverse_bits(std::uint64_t value)
+    static constexpr std::size_t reverse_bits(std::size_t value)
     {
-        std::uint64_t result = 0;
+        std::size_t result = 0;
         for (std::size_t i = 0; i < 64; ++i, value >>= 1)
         {
             result = (result << 1) | (value & 1);
@@ -60,9 +60,9 @@ class IndexableName
      * @param str The string to hash
      * @returns The hash of the given string.
      */
-    static constexpr std::uint64_t hash(std::string_view str)
+    static constexpr std::size_t hash(std::string_view str)
     {
-        std::uint64_t crc = 0;
+        std::size_t crc = 0;
         for (auto c : str)
         {
             crc = crc_table[(crc & 0xFF) ^ c] ^ (crc >> 8);
@@ -82,14 +82,14 @@ class IndexableName
 
     constexpr auto operator<=>(const IndexableName& other) const { return _value <=> other._value; };
 
-    constexpr operator std::uint64_t() const { return _value; }
+    constexpr operator std::size_t() const { return _value; }
     constexpr operator std::string_view() const { return _name; }
 
   public:
     static const IndexableName None;
 
   private:
-    std::uint64_t _value;
+    std::size_t _value;
     std::string_view _name;
 };
 
@@ -106,5 +106,5 @@ FLOW_NAMESPACE_END
 template<>
 struct std::hash<FLOW_NAMESPACE::IndexableName>
 {
-    std::uint64_t operator()(const FLOW_NAMESPACE::IndexableName& name) const { return std::uint64_t(name); }
+    std::size_t operator()(const FLOW_NAMESPACE::IndexableName& name) const { return std::size_t(name); }
 };

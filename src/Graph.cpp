@@ -7,6 +7,8 @@
 #include "flow/core/IndexableName.hpp"
 #include "flow/core/NodeFactory.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <set>
 

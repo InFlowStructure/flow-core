@@ -3,6 +3,8 @@
 
 #include "flow/core/TypeConversion.hpp"
 
+#include <any>
+
 FLOW_NAMESPACE_START
 
 SharedNodeData TypeRegistry::Convert(const SharedNodeData& data, std::string_view to_type) const
