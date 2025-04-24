@@ -93,7 +93,7 @@ Module::LoadingError Module::Load(const std::filesystem::path& filename)
 
     auto register_func = GetProcAddress(handle, NodeFactory::RegisterModuleFuncName);
 #else
-    void* handle = dlopen(file.c_str(), RTLD_LAZY);
+    void* handle = dlopen(module_binary_path.c_str(), RTLD_LAZY);
     if (!handle)
     {
         return LoadingError::FailedFileLoad;
