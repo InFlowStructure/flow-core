@@ -3,10 +3,9 @@
 
 #pragma once
 
-#include "Connection.hpp"
 #include "Core.hpp"
-#include "Graph.hpp"
-#include "Module.hpp"
+#include "Node.hpp"
+#include "NodeFactory.hpp"
 #include "UUID.hpp"
 
 #include <BS_thread_pool.hpp>
@@ -47,18 +46,6 @@ class Env : public std::enable_shared_from_this<Env>
     {
         return std::shared_ptr<Env>(new Env(std::move(factory)));
     }
-
-    /**
-     * @brief Load custom Flow module.
-     * @param module_file The module file to load.
-     */
-    const std::shared_ptr<Module>& LoadModule(const std::filesystem::path& module_file);
-
-    /**
-     * @brief Unloads a specified Flow module that has previously been loaded.
-     * @param module_filename The module filename to unload.
-     */
-    void UnloadModule(const std::filesystem::path& module_filename);
 
     /**
      * @brief Gets the current factory for building nodes.
@@ -147,9 +134,6 @@ class Env : public std::enable_shared_from_this<Env>
 
     /// The thread pool to use for executing graphs.
     std::unique_ptr<thread_pool> _pool;
-
-    /// Keyed list of loaded module handles.
-    std::unordered_map<std::string, std::shared_ptr<Module>> _loaded_modules;
 };
 
 FLOW_NAMESPACE_END

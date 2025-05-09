@@ -17,18 +17,6 @@ class Module
 {
   public:
     /**
-     * Error status when loading a module.
-     */
-    enum class LoadingError
-    {
-        None = 0,
-        NotAModule,
-        FailedFileLoad,
-        RegisterFuncFailed,
-    };
-
-  public:
-    /**
      * @brief Constructs a flow module from a given directory.
      * @param dir The directory to try to load.
      * @param factory The factory to load registered nodes into.
@@ -40,14 +28,23 @@ class Module
     /**
      * @brief Loads a module from a given directory.
      * @param dir The directory to try to load.
-     * @returns The result of loading the module.
      */
-    LoadingError Load(const std::filesystem::path& dir);
+    bool Load(const std::filesystem::path& dir);
 
     /**
      * @brief Unloads the currently loaded module handle.
      */
-    void Unload();
+    bool Unload();
+
+    const std::string& GetName() const noexcept { _name; }
+
+    const std::string& GetVersion() const noexcept { _version; }
+
+    const std::string& GetAuthor() const noexcept { _author; }
+
+    const std::string& GetDescription() const noexcept { _description; }
+
+    const std::vector<std::string>& GetDependencies() const noexcept { _dependencies; }
 
   public:
     static const std::string FileExtension;
@@ -61,7 +58,7 @@ class Module
     std::vector<std::string> _dependencies;
 
     std::shared_ptr<NodeFactory> _factory;
-    void* _handle;
+    void* _handle = nullptr;
 };
 
 FLOW_NAMESPACE_END

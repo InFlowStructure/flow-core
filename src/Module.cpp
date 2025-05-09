@@ -29,38 +29,30 @@ const std::string Module::BinaryExtension = ".so";
 
 Module::Module(const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory) : _factory(std::move(factory))
 {
-    auto result = Load(dir);
-    switch (result)
-    {
-    case LoadingError::NotAModule:
-        throw std::runtime_error(std::format("Directory is not a module. (dir={})", dir.string()));
-    case LoadingError::FailedFileLoad:
-        throw std::runtime_error(std::format("Failed to load module from dir. (dir={})", dir.string()));
-    case LoadingError::RegisterFuncFailed:
-        throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (dir={})", dir.string()));
-    case LoadingError::None:
-        [[fallthrough]];
-    default:
-        break;
-    }
+    Load(dir);
 }
 
 Module::~Module() { Unload(); }
 
-Module::LoadingError Module::Load(const std::filesystem::path& filename)
+bool Module::Load(const std::filesystem::path& filename)
 {
+    if (_handle)
+    {
+        return false;
+    }
+
     if (!std::filesystem::exists(filename) || !std::filesystem::is_regular_file(filename) ||
         filename.extension() != "." + FileExtension)
     {
-        return LoadingError::NotAModule;
+        throw std::runtime_error(std::format("Directory is not a module. (dir={})", filename.string()));
     }
 
     std::ifstream module_fs(filename);
     json module_j = json::parse(module_fs);
-    _name         = module_j["name"];
-    _version      = module_j["version"];
-    _author       = module_j["author"];
-    _description  = module_j["description"];
+    _name         = module_j["Name"];
+    _version      = module_j["Version"];
+    _author       = module_j["Author"];
+    _description  = module_j["Description"];
 
     const std::string module_file_name = _name + BinaryExtension;
     std::filesystem::path module_binary_path;
@@ -77,7 +69,7 @@ Module::LoadingError Module::Load(const std::filesystem::path& filename)
 
     if (!std::filesystem::exists(module_binary_path))
     {
-        return LoadingError::FailedFileLoad;
+        throw std::runtime_error(std::format("Module binary does not exist. (dir={})", filename.string()));
     }
 
 #ifdef FLOW_WINDOWS
@@ -88,7 +80,7 @@ Module::LoadingError Module::Load(const std::filesystem::path& filename)
 #endif
     if (!handle)
     {
-        return LoadingError::FailedFileLoad;
+        throw std::runtime_error(std::format("Failed to load module binary. (dir={})", filename.string()));
     }
 
     auto register_func = GetProcAddress(handle, NodeFactory::RegisterModuleFuncName);
@@ -96,7 +88,7 @@ Module::LoadingError Module::Load(const std::filesystem::path& filename)
     void* handle = dlopen(module_binary_path.c_str(), RTLD_LAZY);
     if (!handle)
     {
-        return LoadingError::FailedFileLoad;
+        throw std::runtime_error(std::format("Failed to load module binary. (dir={})", filename.string()));
     }
 
     auto register_func = dlsym(handle, NodeFactory::RegisterModuleFuncName);
@@ -105,7 +97,7 @@ Module::LoadingError Module::Load(const std::filesystem::path& filename)
     {
         RegisterModule_func(_factory);
         _handle = std::bit_cast<void*>(handle);
-        return LoadingError::None;
+        return true;
     }
 
 #ifdef FLOW_WINDOWS
@@ -114,11 +106,16 @@ Module::LoadingError Module::Load(const std::filesystem::path& filename)
     dlclose(handle);
 #endif
 
-    return LoadingError::RegisterFuncFailed;
+    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (dir={})", filename.string()));
 }
 
-void Module::Unload()
+bool Module::Unload()
 {
+    if (!_handle)
+    {
+        return false;
+    }
+
 #ifdef FLOW_WINDOWS
     auto unregister_func = GetProcAddress(std::bit_cast<HINSTANCE>(_handle), NodeFactory::UnregisterModuleFuncName);
 #else
@@ -130,10 +127,16 @@ void Module::Unload()
     }
 
 #ifdef FLOW_WINDOWS
-    FreeLibrary(std::bit_cast<HINSTANCE>(_handle));
+    bool result = FreeLibrary(std::bit_cast<HINSTANCE>(_handle));
 #else
-    dlclose(_handle);
+    bool result = dlclose(_handle);
 #endif
+    if (result)
+    {
+        _handle = nullptr;
+    }
+
+    return result;
 }
 
 FLOW_NAMESPACE_END

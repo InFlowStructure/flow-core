@@ -10,13 +10,6 @@
 #include "flow/core/UUID.hpp"
 
 #include <chrono>
-#include <fstream>
-
-#ifdef FLOW_WINDOWS
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
 
 FLOW_NAMESPACE_START
 
@@ -29,17 +22,6 @@ Env::Env(std::shared_ptr<NodeFactory> factory) : _factory{std::move(factory)}, _
     _factory->RegisterCompleteConversion<std::chrono::nanoseconds, std::chrono::microseconds, std::chrono::milliseconds,
                                          std::chrono::seconds, std::chrono::minutes, std::chrono::hours,
                                          std::chrono::days, std::chrono::months, std::chrono::years>();
-}
-
-const std::shared_ptr<Module>& Env::LoadModule(const std::filesystem::path& file)
-{
-    auto [m, _] = _loaded_modules.emplace(file.filename().string(), std::make_shared<Module>(file, _factory));
-    return m->second;
-}
-
-void Env::UnloadModule(const std::filesystem::path& module_file)
-{
-    _loaded_modules.erase(module_file.filename().string());
 }
 
 void Env::Wait() { _pool->wait(); }

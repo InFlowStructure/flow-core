@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.21)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+#=============================================================================#
+# Fetch testing dependencies
+#=============================================================================#
+
 find_package(GTest CONFIG QUIET)
 if (NOT GTest_FOUND)
   include(FetchContent)
@@ -16,6 +20,17 @@ if (NOT GTest_FOUND)
   FetchContent_MakeAvailable(googletest)
 endif()
 
+#=============================================================================#
+# Add Test Module
+#=============================================================================#
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests/bin)
+add_subdirectory(test_module)
+
+#=============================================================================#
+# Test Executable
+#=============================================================================#
+
 add_executable(
   flow_core_tests
 
@@ -24,11 +39,12 @@ add_executable(
   indexable_name_test.cpp
   node_test.cpp
   type_name_test.cpp
+  module_test.cpp
 )
 
 if(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-  target_compile_options(flow_core_tests PRIVATE /W4)
+  target_compile_options(flow_core_tests PRIVATE /W4 /MP)
 endif()
 
 target_link_libraries(
