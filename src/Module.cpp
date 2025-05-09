@@ -41,10 +41,15 @@ bool Module::Load(const std::filesystem::path& filename)
         return false;
     }
 
-    if (!std::filesystem::exists(filename) || !std::filesystem::is_regular_file(filename) ||
-        filename.extension() != "." + FileExtension)
+    if (!std::filesystem::exists(filename))
     {
-        throw std::runtime_error(std::format("Directory is not a module. (dir={})", filename.string()));
+        throw std::runtime_error(std::format("File does not exist. (file={})", filename.string()));
+    }
+
+    if (!std::filesystem::is_regular_file(filename) || filename.extension() != ("." + FileExtension))
+    {
+        throw std::runtime_error(
+            std::format("File is not a module. (file={}, extension={})", filename.string(), FileExtension));
     }
 
     std::ifstream module_fs(filename);
@@ -69,7 +74,8 @@ bool Module::Load(const std::filesystem::path& filename)
 
     if (!std::filesystem::exists(module_binary_path))
     {
-        throw std::runtime_error(std::format("Module binary does not exist. (dir={})", filename.string()));
+        throw std::runtime_error(
+            std::format("Module binary does not exist. (binary_path={})", module_binary_path.string()));
     }
 
 #ifdef FLOW_WINDOWS
@@ -80,7 +86,8 @@ bool Module::Load(const std::filesystem::path& filename)
 #endif
     if (!handle)
     {
-        throw std::runtime_error(std::format("Failed to load module binary. (dir={})", filename.string()));
+        throw std::runtime_error(
+            std::format("Failed to load module binary. (binary_path={})", module_binary_path.string()));
     }
 
     auto register_func = GetProcAddress(handle, NodeFactory::RegisterModuleFuncName);
@@ -88,7 +95,8 @@ bool Module::Load(const std::filesystem::path& filename)
     void* handle = dlopen(module_binary_path.c_str(), RTLD_LAZY);
     if (!handle)
     {
-        throw std::runtime_error(std::format("Failed to load module binary. (dir={})", filename.string()));
+        throw std::runtime_error(
+            std::format("Failed to load module binary. (binary_path={})", module_binary_path.string()));
     }
 
     auto register_func = dlsym(handle, NodeFactory::RegisterModuleFuncName);
@@ -106,7 +114,7 @@ bool Module::Load(const std::filesystem::path& filename)
     dlclose(handle);
 #endif
 
-    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (dir={})", filename.string()));
+    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (file={})", filename.string()));
 }
 
 bool Module::Unload()
