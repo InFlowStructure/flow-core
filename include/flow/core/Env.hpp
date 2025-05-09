@@ -52,13 +52,7 @@ class Env : public std::enable_shared_from_this<Env>
      * @brief Load custom Flow module.
      * @param module_file The module file to load.
      */
-    void LoadModule(const std::filesystem::path& module_file);
-
-    /**
-     * @brief Load custom Flow modules from a whole directory.
-     * @param module_directory The directory from which to load module files.
-     */
-    void LoadModules(const std::filesystem::path& module_directory);
+    const std::shared_ptr<Module>& LoadModule(const std::filesystem::path& module_file);
 
     /**
      * @brief Unloads a specified Flow module that has previously been loaded.
@@ -155,7 +149,7 @@ class Env : public std::enable_shared_from_this<Env>
     std::unique_ptr<thread_pool> _pool;
 
     /// Keyed list of loaded module handles.
-    std::unordered_map<std::string, Module> _loaded_modules;
+    std::unordered_map<std::string, std::shared_ptr<Module>> _loaded_modules;
 };
 
 FLOW_NAMESPACE_END

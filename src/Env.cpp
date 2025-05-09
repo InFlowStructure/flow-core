@@ -31,22 +31,10 @@ Env::Env(std::shared_ptr<NodeFactory> factory) : _factory{std::move(factory)}, _
                                          std::chrono::days, std::chrono::months, std::chrono::years>();
 }
 
-void Env::LoadModule(const std::filesystem::path& file)
+const std::shared_ptr<Module>& Env::LoadModule(const std::filesystem::path& file)
 {
-    _loaded_modules.emplace(file.filename().string(), Module{file, _factory});
-}
-
-void Env::LoadModules(const std::filesystem::path& extension_path)
-{
-    if (!std::filesystem::exists(extension_path))
-    {
-        return;
-    }
-
-    for (const auto& file : std::filesystem::directory_iterator(extension_path))
-    {
-        LoadModule(file);
-    }
+    auto [m, _] = _loaded_modules.emplace(file.filename().string(), std::make_shared<Module>(file, _factory));
+    return m->second;
 }
 
 void Env::UnloadModule(const std::filesystem::path& module_file)
