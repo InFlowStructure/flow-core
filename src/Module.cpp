@@ -150,16 +150,16 @@ bool Module::Unload()
     }
 
 #ifdef FLOW_WINDOWS
-    bool result = FreeLibrary(std::bit_cast<HINSTANCE>(_handle));
+    if (FreeLibrary(std::bit_cast<HINSTANCE>(_handle)))
 #else
-    bool result = dlclose(_handle);
+    if (dlclose(_handle) == 0)
 #endif
-    if (result)
     {
         _handle = nullptr;
+        return true;
     }
 
-    return result;
+    return false;
 }
 
 FLOW_NAMESPACE_END
