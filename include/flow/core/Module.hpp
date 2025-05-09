@@ -36,15 +36,15 @@ class Module
      */
     bool Unload();
 
-    const std::string& GetName() const noexcept { _name; }
+    const std::string& GetName() const noexcept { return _name; }
 
-    const std::string& GetVersion() const noexcept { _version; }
+    const std::string& GetVersion() const noexcept { return _version; }
 
-    const std::string& GetAuthor() const noexcept { _author; }
+    const std::string& GetAuthor() const noexcept { return _author; }
 
-    const std::string& GetDescription() const noexcept { _description; }
+    const std::string& GetDescription() const noexcept { return _description; }
 
-    const std::vector<std::string>& GetDependencies() const noexcept { _dependencies; }
+    const std::vector<std::string>& GetDependencies() const noexcept { return _dependencies; }
 
   public:
     static const std::string FileExtension;
