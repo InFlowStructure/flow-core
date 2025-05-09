@@ -5,11 +5,15 @@
 
 #include "Core.hpp"
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <filesystem>
 #include <string>
 #include <vector>
 
 FLOW_NAMESPACE_START
+
+using json = nlohmann::json;
 
 class NodeFactory;
 
@@ -22,6 +26,8 @@ class Module
      * @param factory The factory to load registered nodes into.
      */
     Module(const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory);
+
+    Module(const json& module_json, const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory);
 
     ~Module();
 

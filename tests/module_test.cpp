@@ -4,20 +4,29 @@
 #include "flow/core/Module.hpp"
 #include "flow/core/NodeFactory.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <filesystem>
 
 using namespace FLOW_NAMESPACE;
 
-const std::filesystem::path module_path = std::filesystem::current_path() / "test_module.flowmod";
+nlohmann::json module_json{
+    {"Author", "Cisco Systems, Inc."},
+    {"Description", "A test module."},
+    {"Name", "test_module"},
+    {"Version", "0.0.0"},
+};
+
+const std::filesystem::path module_path = std::filesystem::current_path();
 
 auto factory = std::make_shared<NodeFactory>();
 auto env     = Env::Create(factory);
 
-TEST(ModuleTest, Load) { ASSERT_NO_THROW(Module(module_path, factory)); }
+TEST(ModuleTest, Load) { ASSERT_NO_THROW(Module(module_json, module_path, factory)); }
 
 TEST(ModuleTest, RunModuleNodes)
 {
-    Module module(module_path, factory);
+    Module module(module_json, module_path, factory);
 
     SharedNode node;
     ASSERT_NO_THROW(node = factory->CreateNode("TestNode", UUID{}, "test", env));
@@ -29,13 +38,13 @@ TEST(ModuleTest, RunModuleNodes)
 
 TEST(ModuleTest, Unload)
 {
-    Module module(module_path, factory);
+    Module module(module_json, module_path, factory);
     ASSERT_NO_THROW(module.Unload());
 }
 
 TEST(ModuleTest, LoadUnloadLoad)
 {
-    Module module(module_path, factory);
+    Module module(module_json, module_path, factory);
     ASSERT_NO_THROW(ASSERT_FALSE(module.Load(module_path)));
     ASSERT_NO_THROW(ASSERT_TRUE(module.Unload()));
     ASSERT_NO_THROW(ASSERT_TRUE(module.Load(module_path)));

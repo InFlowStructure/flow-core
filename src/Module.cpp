@@ -32,36 +32,50 @@ Module::Module(const std::filesystem::path& dir, std::shared_ptr<NodeFactory> fa
     Load(dir);
 }
 
+Module::Module(const json& module_j, const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory)
+    : _factory(std::move(factory))
+{
+    _name        = module_j["Name"];
+    _version     = module_j["Version"];
+    _author      = module_j["Author"];
+    _description = module_j["Description"];
+
+    Load(dir);
+}
+
 Module::~Module() { Unload(); }
 
-bool Module::Load(const std::filesystem::path& filename)
+bool Module::Load(const std::filesystem::path& path)
 {
     if (_handle)
     {
         return false;
     }
 
-    if (!std::filesystem::exists(filename))
+    if (!std::filesystem::exists(path))
     {
-        throw std::runtime_error(std::format("File does not exist. (file={})", filename.string()));
+        throw std::runtime_error(std::format("Path does not exist. (file={})", path.string()));
     }
 
-    if (!std::filesystem::is_regular_file(filename) || filename.extension() != ("." + FileExtension))
+    if (std::filesystem::is_regular_file(path))
     {
-        throw std::runtime_error(
-            std::format("File is not a module. (file={}, extension={})", filename.string(), FileExtension));
-    }
+        if (path.extension() != ("." + FileExtension))
+        {
+            throw std::runtime_error(
+                std::format("File is not a module. (file={}, extension={})", path.string(), FileExtension));
+        }
 
-    std::ifstream module_fs(filename);
-    json module_j = json::parse(module_fs);
-    _name         = module_j["Name"];
-    _version      = module_j["Version"];
-    _author       = module_j["Author"];
-    _description  = module_j["Description"];
+        std::ifstream module_fs(path);
+        json module_j = json::parse(module_fs);
+        _name         = module_j["Name"];
+        _version      = module_j["Version"];
+        _author       = module_j["Author"];
+        _description  = module_j["Description"];
+    }
 
     const std::string module_file_name = _name + BinaryExtension;
     std::filesystem::path module_binary_path;
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(filename.parent_path()))
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(path.parent_path()))
     {
         if (!std::filesystem::is_regular_file(entry) || entry.path().filename() != module_file_name)
         {
@@ -114,7 +128,7 @@ bool Module::Load(const std::filesystem::path& filename)
     dlclose(handle);
 #endif
 
-    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (file={})", filename.string()));
+    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (file={})", path.string()));
 }
 
 bool Module::Unload()
