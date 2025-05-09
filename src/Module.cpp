@@ -77,7 +77,8 @@ bool Module::Load(const std::filesystem::path& path)
     std::filesystem::path module_binary_path;
     for (const auto& entry : std::filesystem::recursive_directory_iterator(path.parent_path()))
     {
-        if (!std::filesystem::is_regular_file(entry) || entry.path().filename() != module_file_name)
+        if (!std::filesystem::is_regular_file(entry) ||
+            (entry.path().filename() != module_file_name && entry.path().filename() != ("lib" + module_file_name)))
         {
             continue;
         }
