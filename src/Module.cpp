@@ -32,7 +32,7 @@ void Module::HandleDelete::operator()(void* handle)
 #ifdef FLOW_WINDOWS
     if (!FreeLibrary(std::bit_cast<HINSTANCE>(handle)))
 #else
-    if (dlclose(_handle) != 0)
+    if (dlclose(handle) != 0)
 #endif
     {
         throw std::runtime_error("Module handle failed to unload");
