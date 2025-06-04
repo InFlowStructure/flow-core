@@ -19,6 +19,11 @@ class NodeFactory;
 
 class Module
 {
+    struct HandleDelete
+    {
+        void operator()(void*);
+    };
+
   public:
     /**
      * @brief Constructs a flow module from a given directory.
@@ -42,6 +47,8 @@ class Module
      */
     bool Unload();
 
+    bool IsLoaded() const noexcept { return _handle != nullptr; }
+
     const std::string& GetName() const noexcept { return _name; }
 
     const std::string& GetVersion() const noexcept { return _version; }
@@ -51,6 +58,9 @@ class Module
     const std::string& GetDescription() const noexcept { return _description; }
 
     const std::vector<std::string>& GetDependencies() const noexcept { return _dependencies; }
+
+  private:
+    void Validate(const json& module_json);
 
   public:
     static const std::string FileExtension;
@@ -64,7 +74,7 @@ class Module
     std::vector<std::string> _dependencies;
 
     std::shared_ptr<NodeFactory> _factory;
-    void* _handle = nullptr;
+    std::unique_ptr<void, HandleDelete> _handle;
 };
 
 FLOW_NAMESPACE_END

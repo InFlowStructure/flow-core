@@ -27,6 +27,7 @@ TEST(ModuleTest, Load) { ASSERT_NO_THROW(Module(module_json, module_path, factor
 TEST(ModuleTest, RunModuleNodes)
 {
     Module module(module_json, module_path, factory);
+    ASSERT_TRUE(module.IsLoaded());
 
     SharedNode node;
     ASSERT_NO_THROW(node = factory->CreateNode("TestNode", UUID{}, "test", env));
@@ -39,13 +40,19 @@ TEST(ModuleTest, RunModuleNodes)
 TEST(ModuleTest, Unload)
 {
     Module module(module_json, module_path, factory);
+    ASSERT_TRUE(module.IsLoaded());
     ASSERT_NO_THROW(module.Unload());
+    ASSERT_FALSE(module.IsLoaded());
 }
 
 TEST(ModuleTest, LoadUnloadLoad)
 {
     Module module(module_json, module_path, factory);
+    ASSERT_TRUE(module.IsLoaded());
     ASSERT_NO_THROW(ASSERT_FALSE(module.Load(module_path)));
+    ASSERT_TRUE(module.IsLoaded());
     ASSERT_NO_THROW(ASSERT_TRUE(module.Unload()));
+    ASSERT_FALSE(module.IsLoaded());
     ASSERT_NO_THROW(ASSERT_TRUE(module.Load(module_path)));
+    ASSERT_TRUE(module.IsLoaded());
 }

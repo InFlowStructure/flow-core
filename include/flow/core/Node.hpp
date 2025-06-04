@@ -11,7 +11,7 @@
 #include "Port.hpp"
 #include "UUID.hpp"
 
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 #include <mutex>
 #include <string>
@@ -165,14 +165,28 @@ class Node
     void EmitUpdate(const IndexableName& key, const SharedNodeData& data);
 
   public:
+    /// Event broadcasted called on Compute.
     EventDispatcher<> OnCompute;
+
+    /// Event broadcasted on setting an input.
     EventDispatcher<const IndexableName&, const SharedNodeData&> OnSetInput;
+
+    /// Event broadcasted on setting an output.
     EventDispatcher<const IndexableName&, const SharedNodeData&> OnSetOutput;
+
+    /// Event broadcasted on Compute  throwing an error.
     EventDispatcher<const std::exception&> OnError;
+
+    /// Event broadcasted on output updates being emitted.
     EventDispatcher<const UUID&, const IndexableName&, const SharedNodeData&> OnEmitOutput;
 
   protected:
     mutable std::mutex _mutex;
+
+    /// Event to be used by the graph to propagate output updates.
+    Event<const UUID&, const IndexableName&, const SharedNodeData&> _propagate_output_update;
+
+    friend class Graph;
 
   private:
     UUID _id;
@@ -185,33 +199,140 @@ class Node
     PortMap _output_ports;
 };
 
-#define OVERLOAD_PORT_TYPE(Original, As)                                                                               \
-    template<>                                                                                                         \
-    inline auto FLOW_NAMESPACE::Node::GetInputData<Original>(const IndexableName& key) const noexcept                  \
-    {                                                                                                                  \
-        return GetInputData<As>(key);                                                                                  \
-    }                                                                                                                  \
-    template<>                                                                                                         \
-    inline auto FLOW_NAMESPACE::Node::GetOutputData<Original>(const IndexableName& key) const noexcept                 \
-    {                                                                                                                  \
-        return GetOutputData<As>(key);                                                                                 \
-    }                                                                                                                  \
-    template<>                                                                                                         \
-    inline void FLOW_NAMESPACE::Node::AddInput<Original>(std::string_view key, const std::string& caption,             \
-                                                         SharedNodeData data)                                          \
-    {                                                                                                                  \
-        return AddInput<As>(key, caption, std::move(data));                                                            \
-    }                                                                                                                  \
-    template<>                                                                                                         \
-    inline void FLOW_NAMESPACE::Node::AddOutput<Original>(std::string_view key, const std::string& caption,            \
-                                                          SharedNodeData data)                                         \
-    {                                                                                                                  \
-        return AddOutput<As>(key, caption, std::move(data));                                                           \
-    }
+/**
+ * @brief Structure that reveals the types of the return value and arguments of a function at compile-time.
+ * @tparam F The function type being analyzed.
+ */
+template<typename F>
+struct FunctionTraits;
+
+template<typename R, typename... Args>
+struct FunctionTraits<R(Args...)>
+{
+    using ReturnType = std::invoke_result_t<R(Args...), Args...>;
+    using ArgTypes   = std::tuple<Args...>;
+};
 
 /**
- * Specialise const char* to use std::string for type safety.
+ * @brief Node class that wraps a declared function.
+ *
+ * @details Wraps a declared function as a node type with inputs labeled in increasing alphabetical order starting at
+ *          'a'. Requires that the function node be overloaded. If the function is overloaded, then supplying the
+ *          specific overload to wrap is required.
+ *
+ * @tparam F
+ * @tparam Func
  */
-OVERLOAD_PORT_TYPE(const char*, std::string);
+
+template<typename F, std::add_pointer_t<std::remove_pointer_t<F>> Func>
+class FunctionWrapperNode : public Node
+{
+  protected:
+    using traits   = FunctionTraits<std::remove_pointer_t<F>>;
+    using output_t = typename traits::ReturnType;
+    using arg_ts   = typename traits::ArgTypes;
+
+  private:
+    template<int... Idx>
+    void ParseArguments(std::integer_sequence<int, Idx...>)
+    {
+        (
+            [&] {
+                if constexpr (std::is_lvalue_reference_v<std::tuple_element_t<Idx, arg_ts>> &&
+                              !std::is_const_v<std::remove_reference_t<std::tuple_element_t<Idx, arg_ts>>>)
+                {
+                    AddOutput<std::tuple_element_t<Idx, arg_ts>>({output_names[Idx] = 'a' + Idx}, "");
+                }
+                else
+                {
+                    AddInput<std::tuple_element_t<Idx, arg_ts>>({input_names[Idx] = 'a' + Idx}, "");
+                }
+            }(),
+            ...);
+    }
+
+    template<int... Idx>
+    auto GetInputs(std::integer_sequence<int, Idx...>)
+    {
+        return std::make_tuple(GetInputData<std::tuple_element_t<Idx, arg_ts>>(IndexableName{input_names[Idx]})...);
+    }
+
+    template<int... Idx>
+    json SaveInputs(std::integer_sequence<int, Idx...>) const
+    {
+        json inputs_json;
+        (
+            [&, this] {
+                const auto& key = input_names[Idx];
+                if (auto x = GetInputData<std::tuple_element_t<Idx, arg_ts>>(IndexableName{key}))
+                {
+                    inputs_json[key] = x->Get();
+                }
+            }(),
+            ...);
+
+        return inputs_json;
+    }
+
+    template<int... Idx>
+    void RestoreInputs(json& j, std::integer_sequence<int, Idx...>)
+    {
+        (
+            [&, this] {
+                const auto& key = input_names[Idx];
+                if (!j.contains(key))
+                {
+                    return;
+                }
+
+                if constexpr (!std::is_lvalue_reference_v<std::tuple_element_t<Idx, arg_ts>>)
+                {
+                    SetInputData(IndexableName{key}, MakeNodeData<std::tuple_element_t<Idx, arg_ts>>(j[key]), false);
+                }
+            }(),
+            ...);
+    }
+
+  public:
+    explicit FunctionWrapperNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env)
+        : Node(uuid, TypeName_v<FunctionWrapperNode<F, Func>>, name, std::move(env)), _func{Func}
+    {
+        ParseArguments(std::make_integer_sequence<int, std::tuple_size_v<arg_ts>>{});
+        AddOutput<output_t>("result", "result");
+    }
+
+    virtual ~FunctionWrapperNode() = default;
+
+  protected:
+    void Compute() override
+    {
+        auto inputs = GetInputs(std::make_integer_sequence<int, std::tuple_size_v<arg_ts>>{});
+
+        if (std::apply([](auto&&... args) { return (!args || ...); }, inputs))
+        {
+            return;
+        }
+
+        auto result = std::apply([&](auto&&... args) { return _func(args->Get()...); }, inputs);
+        this->SetOutputData("result", MakeNodeData(std::move(result)));
+    }
+
+    json SaveInputs() const override
+    {
+        return SaveInputs(std::make_integer_sequence<int, std::tuple_size_v<arg_ts>>{});
+    }
+
+    void RestoreInputs(const json& j) override
+    {
+        RestoreInputs(const_cast<json&>(j), std::make_integer_sequence<int, std::tuple_size_v<arg_ts>>{});
+    }
+
+  private:
+    std::add_pointer_t<std::remove_pointer_t<F>> _func;
+    static inline std::array<std::string, std::tuple_size_v<arg_ts>> input_names{""};
+    static inline std::array<std::string, std::tuple_size_v<arg_ts>> output_names{""};
+};
+
+#define DECLARE_FUNCTION_NODE_TYPE(func) FunctionWrapperNode<decltype(func), func>
 
 FLOW_NAMESPACE_END

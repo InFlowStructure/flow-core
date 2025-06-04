@@ -7,8 +7,8 @@
 #include <bit>
 #include <format>
 #include <fstream>
+#include <regex>
 #include <stdexcept>
-
 #ifdef FLOW_WINDOWS
 #include <windows.h>
 #else
@@ -27,6 +27,31 @@ const std::string Module::BinaryExtension = ".dylib";
 const std::string Module::BinaryExtension = ".so";
 #endif
 
+void Module::HandleDelete::operator()(void* handle)
+{
+#ifdef FLOW_WINDOWS
+    if (!FreeLibrary(std::bit_cast<HINSTANCE>(handle)))
+#else
+    if (dlclose(_handle) != 0)
+#endif
+    {
+        throw std::runtime_error("Module handle failed to unload");
+    }
+}
+
+#ifdef UNICODE
+auto LoadModuleLibrary(const std::wstring& name)
+#else
+auto LoadModuleLibrary(const std::string& name)
+#endif
+{
+#ifdef FLOW_WINDOWS
+    return LoadLibrary(name.c_str());
+#else
+    return dlopen(name.c_str(), RTLD_LAZY);
+#endif
+}
+
 Module::Module(const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory) : _factory(std::move(factory))
 {
     Load(dir);
@@ -35,6 +60,8 @@ Module::Module(const std::filesystem::path& dir, std::shared_ptr<NodeFactory> fa
 Module::Module(const json& module_j, const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory)
     : _factory(std::move(factory))
 {
+    Validate(module_j);
+
     _name        = module_j["Name"];
     _version     = module_j["Version"];
     _author      = module_j["Author"];
@@ -67,10 +94,13 @@ bool Module::Load(const std::filesystem::path& path)
 
         std::ifstream module_fs(path);
         json module_j = json::parse(module_fs);
-        _name         = module_j["Name"];
-        _version      = module_j["Version"];
-        _author       = module_j["Author"];
-        _description  = module_j["Description"];
+
+        Validate(module_j);
+
+        _name        = module_j["Name"];
+        _version     = module_j["Version"];
+        _author      = module_j["Author"];
+        _description = module_j["Description"];
     }
 
     const std::string module_file_name = _name + BinaryExtension;
@@ -93,11 +123,10 @@ bool Module::Load(const std::filesystem::path& path)
             std::format("Module binary does not exist. (binary_path={})", module_binary_path.string()));
     }
 
-#ifdef FLOW_WINDOWS
 #ifdef UNICODE
-    HINSTANCE handle = LoadLibrary(module_binary_path.wstring().c_str());
+    auto handle = LoadModuleLibrary(module_binary_path.wstring());
 #else
-    HINSTANCE handle = LoadLibrary(module_binary_path.string().c_str());
+    auto handle = LoadModuleLibrary(module_binary_path.string());
 #endif
     if (!handle)
     {
@@ -105,29 +134,19 @@ bool Module::Load(const std::filesystem::path& path)
             std::format("Failed to load module binary. (binary_path={})", module_binary_path.string()));
     }
 
+#ifdef FLOW_WINDOWS
     auto register_func = GetProcAddress(handle, NodeFactory::RegisterModuleFuncName);
 #else
-    void* handle = dlopen(module_binary_path.c_str(), RTLD_LAZY);
-    if (!handle)
-    {
-        throw std::runtime_error(
-            std::format("Failed to load module binary. (binary_path={})", module_binary_path.string()));
-    }
-
     auto register_func = dlsym(handle, NodeFactory::RegisterModuleFuncName);
 #endif
     if (auto RegisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(register_func))
     {
         RegisterModule_func(_factory);
-        _handle = std::bit_cast<void*>(handle);
+        _handle.reset(std::bit_cast<void*>(handle));
         return true;
     }
 
-#ifdef FLOW_WINDOWS
-    FreeLibrary(handle);
-#else
-    dlclose(handle);
-#endif
+    HandleDelete{}(handle);
 
     throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (file={})", path.string()));
 }
@@ -140,26 +159,34 @@ bool Module::Unload()
     }
 
 #ifdef FLOW_WINDOWS
-    auto unregister_func = GetProcAddress(std::bit_cast<HINSTANCE>(_handle), NodeFactory::UnregisterModuleFuncName);
+    auto unregister = GetProcAddress(std::bit_cast<HINSTANCE>(_handle.get()), NodeFactory::UnregisterModuleFuncName);
 #else
-    auto unregister_func = dlsym(_handle, NodeFactory::UnregisterModuleFuncName);
+    auto unregister = dlsym(_handle.get(), NodeFactory::UnregisterModuleFuncName);
 #endif
-    if (auto UnregisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(unregister_func))
+    if (auto UnregisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(unregister))
     {
         UnregisterModule_func(_factory);
     }
 
-#ifdef FLOW_WINDOWS
-    if (FreeLibrary(std::bit_cast<HINSTANCE>(_handle)))
-#else
-    if (dlclose(_handle) == 0)
-#endif
+    _handle.reset();
+    return true;
+}
+
+void Module::Validate(const json& mod_j)
+{
+    if (!mod_j.contains("Name") || !mod_j.contains("Author") || !mod_j.contains("Version") ||
+        !mod_j.contains("Description"))
     {
-        _handle = nullptr;
-        return true;
+        throw std::invalid_argument("JSON is not a valid flow::Module");
     }
 
-    return false;
+    std::regex semver_regex(R"(^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$)");
+    const std::string& version = mod_j["Version"].get_ref<const std::string&>();
+
+    if (!std::regex_match(version, semver_regex))
+    {
+        throw std::invalid_argument(std::format("Version is not in numeric only format (version={})", version));
+    }
 }
 
 FLOW_NAMESPACE_END

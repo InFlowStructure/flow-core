@@ -46,7 +46,7 @@ class NodeFactory
      * @param name The friendly name of the node to register it under.
      */
     template<concepts::NodeType T>
-    void RegisterNodeClass(const std::string& category, const std::string& name);
+    void RegisterNodeClass(const std::string& category, const std::string& name = std::string{TypeName_v<T>});
 
     /**
      * @brief Removes a node's construction method from the factory.
@@ -246,7 +246,8 @@ class Category
      * @param name The friendly name of the node to register it under.
      */
     template<concepts::NodeType T>
-    void RegisterNodeClass(const std::shared_ptr<NodeFactory>& factory, const std::string& friendly_name)
+    void RegisterNodeClass(const std::shared_ptr<NodeFactory>& factory,
+                           const std::string& friendly_name = std::string{TypeName_v<T>})
     {
         factory->RegisterNodeClass<T>(_category_name, friendly_name);
         _classes.insert(std::make_pair(std::string{TypeName_v<T>}, friendly_name));

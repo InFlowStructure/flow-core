@@ -38,14 +38,14 @@ TEST(FactoryTest, Construction) { ASSERT_NO_THROW(auto factory = std::make_share
 TEST(FactoryTest, RegisterNodeClass)
 {
     auto factory = std::make_shared<NodeFactory>();
-    ASSERT_NO_THROW(factory->RegisterNodeClass<TestNode>("Test", "TestNode"));
+    ASSERT_NO_THROW(factory->RegisterNodeClass<TestNode>("Test"));
 }
 
 TEST(FactoryTest, CreateNode)
 {
     auto factory = std::make_shared<NodeFactory>();
     auto env     = Env::Create(factory);
-    ASSERT_NO_THROW(factory->RegisterNodeClass<TestNode>("Test", "TestNode"));
+    ASSERT_NO_THROW(factory->RegisterNodeClass<TestNode>("Test"));
     ASSERT_NO_THROW(auto node = factory->CreateNode(std::string{TypeName_v<TestNode>}, UUID{}, "test", env));
     ASSERT_NE(factory->CreateNode(std::string{TypeName_v<TestNode>}, UUID{}, "test", env), nullptr);
 }

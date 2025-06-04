@@ -113,6 +113,10 @@ void Node::SetOutputData(const IndexableName& key, SharedNodeData data, bool emi
     }
 }
 
-void Node::EmitUpdate(const IndexableName& key, const SharedNodeData& data) { OnEmitOutput.Broadcast(ID(), key, data); }
+void Node::EmitUpdate(const IndexableName& key, const SharedNodeData& data)
+{
+    _propagate_output_update(ID(), key, data);
+    OnEmitOutput.Broadcast(ID(), key, data);
+}
 
 FLOW_NAMESPACE_END

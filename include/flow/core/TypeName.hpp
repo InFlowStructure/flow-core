@@ -40,14 +40,29 @@ constexpr std::string_view wrapped_type_name()
 #endif
 }
 
-constexpr std::size_t wrapped_type_name_prefix_length()
+constexpr std::size_t wrapped_type_name_prefix_length() noexcept
 {
     return wrapped_type_name<void>().find(TypeName<void>::value);
 }
 
-constexpr std::size_t wrapped_type_name_suffix_length()
+constexpr std::size_t wrapped_type_name_suffix_length() noexcept
 {
     return wrapped_type_name<void>().length() - wrapped_type_name_prefix_length() - TypeName<void>::value.length();
+}
+
+template<typename T>
+constexpr std::string_view get_typename() noexcept
+{
+    constexpr auto wrapped_name    = detail::wrapped_type_name<T>();
+    constexpr auto prefix_length   = detail::wrapped_type_name_prefix_length();
+    constexpr auto suffix_length   = detail::wrapped_type_name_suffix_length();
+    constexpr auto TypeName_length = wrapped_name.length() - prefix_length - suffix_length;
+    constexpr auto name            = wrapped_name.substr(prefix_length, TypeName_length);
+
+    constexpr auto adjusted_prefix_length   = (name.starts_with("class") ? 6 : (name.starts_with("struct") ? 7 : 0));
+    constexpr auto adjusted_TypeName_length = name.length() - adjusted_prefix_length;
+
+    return name.substr(adjusted_prefix_length, adjusted_TypeName_length);
 }
 } // namespace detail
 
@@ -57,18 +72,37 @@ struct TypeName
     /**
      * @brief The string representation of the given type.
      */
-    static constexpr std::string_view value = [] {
-        constexpr auto wrapped_name    = detail::wrapped_type_name<T>();
-        constexpr auto prefix_length   = detail::wrapped_type_name_prefix_length();
-        constexpr auto suffix_length   = detail::wrapped_type_name_suffix_length();
-        constexpr auto TypeName_length = wrapped_name.length() - prefix_length - suffix_length;
-        constexpr auto name            = wrapped_name.substr(prefix_length, TypeName_length);
+    static constexpr std::string_view value = detail::get_typename<T>();
 
-        constexpr auto adjusted_prefix_length = (name.starts_with("class") ? 6 : (name.starts_with("struct") ? 7 : 0));
-        constexpr auto adjusted_TypeName_length = name.length() - adjusted_prefix_length;
+    static constexpr bool is_reference = false;
 
-        return name.substr(adjusted_prefix_length, adjusted_TypeName_length);
-    }();
+    static constexpr bool is_const = std::is_const_v<T>;
+};
+
+template<typename T>
+struct TypeName<T&>
+{
+    /**
+     * @brief The string representation of the given type.
+     */
+    static constexpr std::string_view value = detail::get_typename<T&>();
+
+    static constexpr bool is_reference = true;
+
+    static constexpr bool is_const = std::is_const_v<T>;
+};
+
+template<typename T>
+struct TypeName<T&&>
+{
+    /**
+     * @brief The string representation of the given type.
+     */
+    static constexpr std::string_view value = detail::get_typename<T&>();
+
+    static constexpr bool is_reference = true;
+
+    static constexpr bool is_const = std::is_const_v<T>;
 };
 
 template<typename T, typename U>

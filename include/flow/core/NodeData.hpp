@@ -322,6 +322,20 @@ class NodeData<T&> : public INodeData
     }
 
   protected:
+    void* AsPointer() const override { return std::bit_cast<void*>(&this->_value); }
+    void FromPointer(void* value) override
+    {
+        if constexpr (std::is_copy_assignable_v<T>)
+        {
+            this->_value = *std::bit_cast<T*>(value);
+        }
+        else
+        {
+            this->_value = std::move(*std::bit_cast<T*>(value));
+        }
+    }
+
+  protected:
     T& _value;
 };
 } // namespace detail
@@ -398,24 +412,6 @@ class NodeData<Ptr> : public detail::NodeData<Ptr>
 
     constexpr auto operator*() const noexcept { return this->_value.operator*(); }
     constexpr auto operator->() const noexcept { return this->_value.operator->(); }
-};
-
-/**
- * @brief Specialisation for std::string to allow easy conversion to const char*.
- */
-template<>
-class NodeData<std::string> : public detail::NodeData<std::string>
-{
-    using Base = detail::NodeData<std::string>;
-
-  public:
-    virtual ~NodeData() = default;
-
-    using Base::Base;
-    using Base::operator=;
-
-    [[nodiscard]] operator const char*() const { return this->_value.c_str(); }
-    [[nodiscard]] const char* Get() const { return this->_value.c_str(); }
 };
 
 /**
