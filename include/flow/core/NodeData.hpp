@@ -325,6 +325,11 @@ class NodeData<T&> : public INodeData
     void* AsPointer() const override { return std::bit_cast<void*>(&this->_value); }
     void FromPointer(void* value) override
     {
+        if constexpr (std::is_const_v<std::remove_reference_t<T>>)
+        {
+            return;
+        }
+
         if constexpr (std::is_copy_assignable_v<T>)
         {
             this->_value = *std::bit_cast<T*>(value);
