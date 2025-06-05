@@ -33,6 +33,14 @@ catch (const std::string& e)
 {
     OnError.Broadcast(std::runtime_error(e));
 }
+catch (const char* e)
+{
+    OnError.Broadcast(std::runtime_error(e));
+}
+catch (int e)
+{
+    OnError.Broadcast(std::runtime_error(std::to_string(e)));
+}
 catch (...)
 {
     OnError.Broadcast(std::exception());

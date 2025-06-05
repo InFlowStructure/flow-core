@@ -62,6 +62,8 @@ TEST(TypeNameTest, ReferenceTypes)
 
 TEST(TypeNameTest, ConstantTypes)
 {
+    EXPECT_FALSE(TypeName<int&>::value.starts_with("const"));
+    EXPECT_TRUE(TypeName<const int&>::value.starts_with("const"));
     EXPECT_FALSE(TypeName<int>::is_const);
     EXPECT_TRUE(TypeName<const int>::is_const);
     EXPECT_FALSE(TypeName<int&>::is_const);

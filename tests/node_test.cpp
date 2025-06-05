@@ -7,18 +7,18 @@
 
 using namespace FLOW_NAMESPACE;
 
-namespace
+namespace test
 {
 auto factory = std::make_shared<NodeFactory>();
 auto env     = Env::Create(factory);
-} // namespace
+} // namespace test
 
 namespace NodeTest
 {
 
 struct TestNode : public Node
 {
-    TestNode() : Node(UUID{}, TypeName_v<TestNode>, "Test", env) {}
+    TestNode() : Node(UUID{}, TypeName_v<TestNode>, "Test", test::env) {}
     void Compute() override
     {
         if (auto data = GetInputData<int>("in"))
@@ -54,7 +54,7 @@ TEST(NodeTest, Construction)
     NodeTest::TestNode node;
     EXPECT_EQ(node.GetClass(), "NodeTest::TestNode");
     EXPECT_EQ(node.GetName(), "Test");
-    EXPECT_EQ(node.GetEnv(), env);
+    EXPECT_EQ(node.GetEnv(), test::env);
 }
 
 TEST(NodeTest, AddInputPorts)
@@ -143,4 +143,23 @@ TEST(NodeTest, Compute)
 
     EXPECT_NE(node.GetOutputData<int>("out"), nullptr);
     EXPECT_EQ(node.GetOutputData<int>("out")->Get(), 101);
+}
+
+void void_test_method(int) {}
+int return_test_method(int i) { return i; }
+int return_ref_test_method(int& i) { return i; }
+
+TEST(NodeTest, WrapFunctions)
+{
+    DECLARE_FUNCTION_NODE_TYPE(void_test_method) void_node({}, "void_test_method", test::env);
+    DECLARE_FUNCTION_NODE_TYPE(return_test_method) return_node({}, "return_test_method", test::env);
+    DECLARE_FUNCTION_NODE_TYPE(return_ref_test_method) return_ref_node({}, "return_ref_test_method", test::env);
+
+    ASSERT_EQ(void_node.GetInputPorts().size(), 1);
+    ASSERT_EQ(return_node.GetInputPorts().size(), 1);
+    ASSERT_TRUE(return_ref_node.GetInputPorts().empty());
+
+    ASSERT_TRUE(void_node.GetOutputPorts().empty());
+    ASSERT_EQ(return_node.GetOutputPorts().size(), 1);
+    ASSERT_EQ(return_ref_node.GetOutputPorts().size(), 2);
 }

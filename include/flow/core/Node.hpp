@@ -151,9 +151,9 @@ class Node
     }
 
     template<typename T>
-    void AddRequiredInput(std::string_view key, const std::string& caption, T& data)
+    void AddRequiredInput(std::string_view key, const std::string& caption, std::remove_reference_t<T>& data)
     {
-        return AddInput(key, caption, TypeName_v<T&>, MakeRefNodeData<T>(data));
+        return AddInput(key, caption, TypeName_v<T>, MakeRefNodeData<T>(data));
     }
 
     template<typename T>
@@ -209,7 +209,7 @@ struct FunctionTraits;
 template<typename R, typename... Args>
 struct FunctionTraits<R(Args...)>
 {
-    using ReturnType = std::invoke_result_t<R(Args...), Args...>;
+    using ReturnType = R;
     using ArgTypes   = std::tuple<Args...>;
 };
 
@@ -223,29 +223,51 @@ struct FunctionTraits<R(Args...)>
  * @tparam F
  * @tparam Func
  */
-
 template<typename F, std::add_pointer_t<std::remove_pointer_t<F>> Func>
-class FunctionWrapperNode : public Node
+class FunctionNode : public Node
 {
+    template<typename Tuple>
+    struct decayed_tuple;
+
+    template<typename... Types>
+    struct decayed_tuple<std::tuple<Types...>>
+    {
+        using type = std::tuple<std::conditional_t<std::is_reference_v<Types>, std::decay_t<Types>, std::byte>...>;
+    };
+
+    template<typename Tuple>
+    using decayed_tuple_t = typename decayed_tuple<Tuple>::type;
+
   protected:
     using traits   = FunctionTraits<std::remove_pointer_t<F>>;
     using output_t = typename traits::ReturnType;
     using arg_ts   = typename traits::ArgTypes;
+
+    template<std::size_t Idx>
+    using arg_t = typename std::tuple_element_t<Idx, arg_ts>;
+
+    static constexpr const char* return_output_name = "return";
 
   private:
     template<int... Idx>
     void ParseArguments(std::integer_sequence<int, Idx...>)
     {
         (
-            [&] {
-                if constexpr (std::is_lvalue_reference_v<std::tuple_element_t<Idx, arg_ts>> &&
-                              !std::is_const_v<std::remove_reference_t<std::tuple_element_t<Idx, arg_ts>>>)
+            [&, this] {
+                if constexpr (std::is_lvalue_reference_v<arg_t<Idx>> &&
+                              !std::is_const_v<std::remove_reference_t<arg_t<Idx>>>)
                 {
-                    AddOutput<std::tuple_element_t<Idx, arg_ts>>({output_names[Idx] = 'a' + Idx}, "");
+                    AddOutput<arg_t<Idx>>({input_names[Idx] = 'a' + Idx}, "",
+                                          MakeRefNodeData<arg_t<Idx>>(std::get<Idx>(_arguments)));
+                }
+                else if constexpr (std::is_rvalue_reference_v<arg_t<Idx>>)
+                {
+                    AddInput<arg_t<Idx>>({input_names[Idx] = 'a' + Idx}, "",
+                                         MakeRefNodeData<arg_t<Idx>>(std::move(std::get<Idx>(_arguments))));
                 }
                 else
                 {
-                    AddInput<std::tuple_element_t<Idx, arg_ts>>({input_names[Idx] = 'a' + Idx}, "");
+                    AddInput<arg_t<Idx>>({input_names[Idx] = 'a' + Idx}, "");
                 }
             }(),
             ...);
@@ -254,17 +276,34 @@ class FunctionWrapperNode : public Node
     template<int... Idx>
     auto GetInputs(std::integer_sequence<int, Idx...>)
     {
-        return std::make_tuple(GetInputData<std::tuple_element_t<Idx, arg_ts>>(IndexableName{input_names[Idx]})...);
+        return std::make_tuple([&, this] {
+            if constexpr (std::is_lvalue_reference_v<arg_t<Idx>> &&
+                          !std::is_const_v<std::remove_reference_t<arg_t<Idx>>>)
+            {
+                return GetOutputData<arg_t<Idx>>(IndexableName{input_names[Idx]});
+            }
+            else
+            {
+                return GetInputData<arg_t<Idx>>(IndexableName{input_names[Idx]});
+            }
+        }()...);
     }
 
     template<int... Idx>
     json SaveInputs(std::integer_sequence<int, Idx...>) const
     {
         json inputs_json;
+
+        const auto& inputs = GetInputPorts();
         (
             [&, this] {
                 const auto& key = input_names[Idx];
-                if (auto x = GetInputData<std::tuple_element_t<Idx, arg_ts>>(IndexableName{key}))
+                if (!inputs.contains(IndexableName{key}))
+                {
+                    return;
+                }
+
+                if (auto x = GetInputData<arg_t<Idx>>(IndexableName{key}))
                 {
                     inputs_json[key] = x->Get();
                 }
@@ -285,23 +324,27 @@ class FunctionWrapperNode : public Node
                     return;
                 }
 
-                if constexpr (!std::is_lvalue_reference_v<std::tuple_element_t<Idx, arg_ts>>)
+                if constexpr (!std::is_lvalue_reference_v<arg_t<Idx>>)
                 {
-                    SetInputData(IndexableName{key}, MakeNodeData<std::tuple_element_t<Idx, arg_ts>>(j[key]), false);
+                    SetInputData(IndexableName{key}, MakeNodeData<arg_t<Idx>>(j[key]), false);
                 }
             }(),
             ...);
     }
 
   public:
-    explicit FunctionWrapperNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env)
-        : Node(uuid, TypeName_v<FunctionWrapperNode<F, Func>>, name, std::move(env)), _func{Func}
+    explicit FunctionNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env)
+        : Node(uuid, TypeName_v<FunctionNode<F, Func>>, name, std::move(env)), _func{Func}
     {
         ParseArguments(std::make_integer_sequence<int, std::tuple_size_v<arg_ts>>{});
-        AddOutput<output_t>("result", "result");
+
+        if (!std::is_void_v<output_t>)
+        {
+            AddOutput<output_t>(return_output_name, "Return value");
+        }
     }
 
-    virtual ~FunctionWrapperNode() = default;
+    virtual ~FunctionNode() = default;
 
   protected:
     void Compute() override
@@ -313,8 +356,22 @@ class FunctionWrapperNode : public Node
             return;
         }
 
-        auto result = std::apply([&](auto&&... args) { return _func(args->Get()...); }, inputs);
-        this->SetOutputData("result", MakeNodeData(std::move(result)));
+        if constexpr (std::is_void_v<output_t>)
+        {
+            std::apply([&](auto&&... args) { return _func(args->Get()...); }, inputs);
+        }
+        else
+        {
+            auto result = std::apply([&](auto&&... args) { return _func(args->Get()...); }, inputs);
+            this->SetOutputData(return_output_name, MakeNodeData(std::move(result)), false);
+        }
+
+        const auto& outputs = GetOutputPorts();
+        for (const auto& [key, port] : outputs)
+        {
+            OnSetOutput.Broadcast(key, port->GetData());
+            EmitUpdate(key, port->GetData());
+        }
     }
 
     json SaveInputs() const override
@@ -330,9 +387,9 @@ class FunctionWrapperNode : public Node
   private:
     std::add_pointer_t<std::remove_pointer_t<F>> _func;
     static inline std::array<std::string, std::tuple_size_v<arg_ts>> input_names{""};
-    static inline std::array<std::string, std::tuple_size_v<arg_ts>> output_names{""};
+    decayed_tuple_t<arg_ts> _arguments;
 };
 
-#define DECLARE_FUNCTION_NODE_TYPE(func) FunctionWrapperNode<decltype(func), func>
+#define DECLARE_FUNCTION_NODE_TYPE(func) FunctionNode<decltype(func), func>
 
 FLOW_NAMESPACE_END

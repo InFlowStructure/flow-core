@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <memory>
+#include <span>
 #include <type_traits>
 
 FLOW_NAMESPACE_START
@@ -78,13 +79,14 @@ std::string ToString(const std::reference_wrapper<T>& value)
 }
 
 template<typename T>
-std::string ToString(const std::vector<T>& value)
+std::string ToString(std::span<const T> value)
 {
-    std::string os;
-    os += "[";
-    std::for_each(value.begin(), std::prev(value.end()), [&](auto&& v) { os += ToString<T>(v) + ", "; });
-    os += ToString<T>(value.back()) + "]";
-    return os;
+    std::string str;
+    str += "[ ";
+    std::for_each(value.begin(), std::prev(value.end()),
+                  [&](auto&& v) { str += ::FLOW_NAMESPACE::ToString<T>(v) + ", "; });
+    str += ::FLOW_NAMESPACE::ToString<T>(value.back()) + " ]";
+    return str;
 }
 
 template<concepts::Duration T>
@@ -248,11 +250,12 @@ class NodeData : public INodeData
         if constexpr (std::is_copy_assignable_v<T>)
         {
             this->_value = *std::bit_cast<T*>(value);
+            return;
         }
-
-        if constexpr (std::is_move_assignable_v<T>)
+        else if constexpr (std::is_move_assignable_v<T>)
         {
             this->_value = std::move(*std::bit_cast<T*>(value));
+            return;
         }
     }
 
@@ -264,14 +267,12 @@ template<typename T>
 class NodeData<T&> : public INodeData
 {
   public:
-    using ValueType = T;
-
     NodeData()          = delete;
     virtual ~NodeData() = default;
 
     constexpr NodeData(const NodeData&) = default;
     constexpr NodeData(NodeData&&)      = default;
-    constexpr NodeData(T& value) : _value{value} {}
+    constexpr NodeData(T& value) : _value{const_cast<std::remove_const_t<T>&>(value)} {}
     constexpr NodeData(T&& value) = delete;
 
     template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
@@ -310,7 +311,7 @@ class NodeData<T&> : public INodeData
     [[nodiscard]] constexpr T& Get() { return _value; }
     [[nodiscard]] constexpr const T& Get() const { return _value; }
 
-    virtual constexpr std::string_view Type() const final { return TypeName_v<T>; }
+    virtual constexpr std::string_view Type() const final { return TypeName_v<T&>; }
 
     std::string ToString() const final
     try
@@ -326,19 +327,20 @@ class NodeData<T&> : public INodeData
     void* AsPointer() const override { return std::bit_cast<void*>(&this->_value); }
     void FromPointer(void* value) override
     {
-        if constexpr (std::is_copy_assignable_v<T>)
+        if constexpr (std::is_copy_assignable_v<std::remove_cv_t<T>>)
         {
             this->_value = *std::bit_cast<T*>(value);
+            return;
         }
-
-        if constexpr (std::is_move_assignable_v<T>)
+        else if constexpr (std::is_move_assignable_v<std::remove_cv_t<T>>)
         {
             this->_value = std::move(*std::bit_cast<T*>(value));
+            return;
         }
     }
 
   protected:
-    T& _value;
+    std::remove_const_t<T>& _value;
 };
 } // namespace detail
 

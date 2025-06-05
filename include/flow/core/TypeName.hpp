@@ -22,6 +22,10 @@ template<>
 struct TypeName<void>
 {
     static constexpr std::string_view value = "void";
+
+    static constexpr bool is_reference = false;
+
+    static constexpr bool is_const = false;
 };
 
 namespace detail
@@ -82,9 +86,6 @@ struct TypeName
 template<typename T>
 struct TypeName<T&>
 {
-    /**
-     * @brief The string representation of the given type.
-     */
     static constexpr std::string_view value = detail::get_typename<T&>();
 
     static constexpr bool is_reference = true;
@@ -95,10 +96,7 @@ struct TypeName<T&>
 template<typename T>
 struct TypeName<T&&>
 {
-    /**
-     * @brief The string representation of the given type.
-     */
-    static constexpr std::string_view value = detail::get_typename<T&>();
+    static constexpr std::string_view value = detail::get_typename<T&&>();
 
     static constexpr bool is_reference = true;
 
