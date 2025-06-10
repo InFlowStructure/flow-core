@@ -63,36 +63,39 @@ std::string ToString(const T& value)
 template<typename T>
 std::string ToString(const std::unique_ptr<T>& value)
 {
-    return value ? ::FLOW_NAMESPACE::ToString<T>(*value) : "None";
+    return value ? ::flow::ToString<T>(*value) : "None";
 }
 
 template<concepts::CopyablePointer T>
 std::string ToString(const T& value)
 {
-    return value ? ::FLOW_NAMESPACE::ToString(*value) : "None";
+    return value ? ::flow::ToString(*value) : "None";
 }
 
 template<typename T>
 std::string ToString(const std::reference_wrapper<T>& value)
 {
-    return ::FLOW_NAMESPACE::ToString<T>(value.get());
+    return ::flow::ToString<T>(value.get());
 }
 
 template<typename T>
 std::string ToString(std::span<const T> value)
 {
-    std::string str;
-    str += "[ ";
-    std::for_each(value.begin(), std::prev(value.end()),
-                  [&](auto&& v) { str += ::FLOW_NAMESPACE::ToString<T>(v) + ", "; });
-    str += ::FLOW_NAMESPACE::ToString<T>(value.back()) + " ]";
+    if (value.empty())
+    {
+        return "[]";
+    }
+
+    std::string str = "[ ";
+    std::for_each(value.begin(), std::prev(value.end()), [&](auto&& v) { str += ::flow::ToString<T>(v) + ", "; });
+    str += ::flow::ToString<T>(value.back()) + " ]";
     return str;
 }
 
 template<concepts::Duration T>
 std::string ToString(const T& value)
 {
-    return ::FLOW_NAMESPACE::ToString<std::int64_t>(value.count());
+    return ::flow::ToString<std::int64_t>(value.count());
 }
 
 template<typename T>
@@ -155,192 +158,137 @@ namespace detail
 template<typename T>
 class NodeData : public INodeData
 {
-  public:
-    NodeData()          = default;
-    virtual ~NodeData() = default;
+    using value_type = std::conditional_t<std::is_lvalue_reference_v<T>,
+                                          std::add_lvalue_reference_t<std::remove_cv_t<T>>, std::remove_cv_t<T>>;
 
+  public:
+    NodeData() = default;
+
+    constexpr NodeData(NodeData&)       = default;
     constexpr NodeData(const NodeData&) = default;
     constexpr NodeData(NodeData&&)      = default;
-    constexpr NodeData(const T& value) : _value{value} {}
-    constexpr NodeData(T&& value) : _value{std::move(value)} {}
 
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
-    constexpr NodeData(const U& other) : _value{static_cast<const T&>(other)}
+    constexpr NodeData(const T& value) : _value(value) {}
+
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
+    constexpr NodeData(U& other) : _value(static_cast<T&>(other))
     {
     }
 
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
-    constexpr NodeData(const NodeData<U>& other) : _value{static_cast<const T&>(other.Get())}
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
+    constexpr NodeData(U&& other) : _value(static_cast<T&&>(std::move(other)))
     {
     }
 
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
-    constexpr NodeData(NodeData<U>&& other) : _value{static_cast<T&&>(std::move(other.Get()))}
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
+    constexpr NodeData(const std::decay_t<U>& other) : _value(static_cast<const std::decay_t<T>&>(other))
     {
     }
+
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
+    constexpr NodeData(const NodeData<U>& other) : _value(static_cast<const T&>(const_cast<NodeData<U>&>(other).Get()))
+    {
+    }
+
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
+    constexpr NodeData(NodeData<U>&& other) : _value(static_cast<T&&>(std::move(other.Get())))
+    {
+    }
+
+    virtual ~NodeData() = default;
 
     constexpr NodeData& operator=(const NodeData&) = default;
-    constexpr NodeData& operator=(NodeData&&)      = default;
 
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
+    constexpr NodeData& operator=(NodeData&&) = default;
+
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
     constexpr NodeData& operator=(const NodeData<U>& other)
     {
         _value = static_cast<const T&>(other._value);
         return *this;
     }
 
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
     constexpr NodeData& operator=(NodeData<U>&& other)
     {
         _value = static_cast<T&&>(std::move(other._value));
         return *this;
     }
 
-    constexpr NodeData& operator=(const T& value)
-    {
-        _value = value;
-        return *this;
-    }
-
-    constexpr NodeData& operator=(T&& value)
-    {
-        _value = std::move(value);
-        return *this;
-    }
-
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
     constexpr NodeData& operator=(const U& value)
     {
         _value = static_cast<const T&>(value);
         return *this;
     }
 
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
     constexpr NodeData& operator=(U&& value)
     {
         _value = static_cast<T&&>(std::move(value));
         return *this;
     }
 
-    [[nodiscard]] constexpr T& operator*() noexcept { return _value; }
-    [[nodiscard]] constexpr const T& operator*() const noexcept { return _value; }
+    [[nodiscard]] constexpr std::conditional_t<std::is_rvalue_reference_v<T>, std::decay_t<T>&&, T&> Get() noexcept
+    {
+        if constexpr (std::is_rvalue_reference_v<T>)
+        {
+            return std::move(_value);
+        }
+        else
+        {
+            return _value;
+        }
+    }
 
-    [[nodiscard]] constexpr T& Get() noexcept { return _value; }
+    [[nodiscard]] constexpr std::conditional_t<std::is_rvalue_reference_v<T>, std::decay_t<T>&&, T&>
+    operator*() noexcept
+    {
+        return Get();
+    }
+
     [[nodiscard]] constexpr const T& Get() const noexcept { return _value; }
 
-    constexpr void Set(const T& value) { _value = value; }
-    constexpr void Set(T&& value) { _value = std::move(value); }
+    [[nodiscard]] constexpr const T& operator*() const noexcept { return Get(); }
 
-    virtual constexpr std::string_view Type() const noexcept final { return TypeName_v<T>; }
-
-    std::string ToString() const final
-    try
-    {
-        return ::FLOW_NAMESPACE::ToString(this->_value);
-    }
-    catch (const std::exception& e)
-    {
-        return "Error: " + std::string(e.what());
-    }
-
-  protected:
-    void* AsPointer() const override { return std::bit_cast<void*>(&this->_value); }
-    void FromPointer(void* value) override
-    {
-        if constexpr (std::is_copy_assignable_v<T>)
-        {
-            this->_value = *std::bit_cast<T*>(value);
-            return;
-        }
-        else if constexpr (std::is_move_assignable_v<T>)
-        {
-            this->_value = std::move(*std::bit_cast<T*>(value));
-            return;
-        }
-    }
-
-  protected:
-    T _value;
-};
-
-template<typename T>
-class NodeData<T&> : public INodeData
-{
-  public:
-    NodeData()          = delete;
-    virtual ~NodeData() = default;
-
-    constexpr NodeData(const NodeData&) = default;
-    constexpr NodeData(NodeData&&)      = default;
-    constexpr NodeData(T& value) : _value{const_cast<std::remove_const_t<T>&>(value)} {}
-    constexpr NodeData(T&& value) = delete;
-
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
-    constexpr NodeData(const NodeData<U>& other) : _value{static_cast<const T&>(other._value)}
-    {
-    }
-
-    constexpr NodeData& operator=(const NodeData&) = default;
-    constexpr NodeData& operator=(NodeData&&)      = delete;
-
-    template<typename U>
-        requires std::convertible_to<U, T>
-    constexpr NodeData& operator=(const NodeData<U>& other)
-    {
-        _value = static_cast<const T&>(other._value);
-        return *this;
-    }
-
-    constexpr NodeData& operator=(const T& value)
-    {
-        _value = value;
-        return *this;
-    }
-
-    template<typename U>
-        requires std::convertible_to<U, T>
-    constexpr NodeData& operator=(const U& value)
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
+    constexpr void Set(const U& value)
     {
         _value = static_cast<const T&>(value);
-        return *this;
     }
 
-    [[nodiscard]] constexpr T& operator*() { return _value; }
-    [[nodiscard]] constexpr const T& operator*() const { return _value; }
-
-    [[nodiscard]] constexpr T& Get() { return _value; }
-    [[nodiscard]] constexpr const T& Get() const { return _value; }
-
-    virtual constexpr std::string_view Type() const final { return TypeName_v<T&>; }
-
-    std::string ToString() const final
-    try
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
+    constexpr void Set(U&& value)
     {
-        return ::FLOW_NAMESPACE::ToString(this->_value);
+        _value = static_cast<T&&>(std::move(value));
     }
-    catch (const std::exception& e)
-    {
-        return "Error: " + std::string(e.what());
-    }
+
+    virtual constexpr std::string_view Type() const noexcept override { return TypeName_v<T>; }
+
+    virtual std::string ToString() const override { return ::flow::ToString(this->_value); }
 
   protected:
-    void* AsPointer() const override { return std::bit_cast<void*>(&this->_value); }
+    void* AsPointer() const override
+    {
+        return reinterpret_cast<void*>(const_cast<std::remove_cvref_t<T>*>(&this->_value));
+    }
+
     void FromPointer(void* value) override
     {
         if constexpr (std::is_copy_assignable_v<std::remove_cv_t<T>>)
         {
-            this->_value = *std::bit_cast<T*>(value);
+            this->_value = *reinterpret_cast<std::remove_reference_t<T>*>(value);
             return;
         }
         else if constexpr (std::is_move_assignable_v<std::remove_cv_t<T>>)
         {
-            this->_value = std::move(*std::bit_cast<T*>(value));
+            this->_value = std::move(*reinterpret_cast<std::remove_reference_t<T>*>(value));
             return;
         }
     }
 
   protected:
-    std::remove_const_t<T>& _value;
+    value_type _value;
 };
 } // namespace detail
 
@@ -350,18 +298,6 @@ class NodeData<T&> : public INodeData
  */
 template<typename T>
 class NodeData : public detail::NodeData<T>
-{
-    using Base = detail::NodeData<T>;
-
-  public:
-    virtual ~NodeData() = default;
-
-    using Base::Base;
-    using Base::operator=;
-};
-
-template<concepts::OnlyMoveable T>
-class NodeData<T> : public detail::NodeData<T>
 {
     using Base = detail::NodeData<T>;
 
@@ -385,7 +321,7 @@ class NodeData<std::unique_ptr<T>> : public detail::NodeData<std::unique_ptr<T>>
     constexpr NodeData(NodeData&&)      = default;
     constexpr NodeData(std::unique_ptr<T>&& value) : Base(std::move(value)) {}
 
-    template<typename U, std::enable_if_t<std::is_convertible_v<U, T>, bool> = true>
+    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
     constexpr NodeData(NodeData<std::unique_ptr<U>>&& other)
         : detail::NodeData<std::unique_ptr<T>>::NodeData{std::make_unique<T>(static_cast<T&&>(std::move(other.Get())))}
     {
@@ -471,31 +407,31 @@ using TWeakNodeData = std::weak_ptr<class NodeData<T>>;
 template<typename T>
 [[nodiscard]] constexpr auto MakeNodeData(const T& value)
 {
-    return std::make_shared<NodeData<typename std::remove_reference_t<T>>>(value);
+    return std::make_shared<NodeData<T>>(value);
 }
 
 template<typename T>
 [[nodiscard]] constexpr auto MakeNodeData(T&& value)
 {
-    return std::make_shared<NodeData<typename std::remove_reference_t<T>>>(std::move(value));
+    return std::make_shared<NodeData<T>>(std::move(value));
 }
 
 template<typename T, typename U>
 [[nodiscard]] constexpr auto MakeNodeData(const NodeData<U>& value)
 {
-    return std::make_shared<NodeData<typename std::remove_reference_t<T>>>(value);
+    return std::make_shared<NodeData<T>>(value);
 }
 
 template<typename T, typename U>
 [[nodiscard]] constexpr auto MakeNodeData(NodeData<U>&& value)
 {
-    return std::make_shared<NodeData<typename std::remove_reference_t<T>>>(std::move(value));
+    return std::make_shared<NodeData<T>>(std::move(value));
 }
 
-template<typename T>
-[[nodiscard]] constexpr auto MakeRefNodeData(typename std::remove_reference_t<T>& value)
+template<concepts::Reference T>
+[[nodiscard]] constexpr auto MakeRefNodeData(T value)
 {
-    return std::make_shared<NodeData<typename std::remove_reference_t<T>&>>(value);
+    return std::make_shared<NodeData<T>>(value);
 }
 
 template<typename T>

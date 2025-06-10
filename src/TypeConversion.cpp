@@ -9,7 +9,7 @@ FLOW_NAMESPACE_START
 
 SharedNodeData TypeRegistry::Convert(const SharedNodeData& data, std::string_view to_type) const
 {
-    if (!data || IsConvertible(data->Type(), to_type))
+    if (!data || data->Type() == to_type || to_type == TypeName_v<std::any>)
     {
         return data;
     }
@@ -35,16 +35,6 @@ SharedNodeData TypeRegistry::Convert(const SharedNodeData& data, std::string_vie
 
 bool TypeRegistry::IsConvertible(std::string_view from_type, std::string_view to_type) const
 {
-    from_type.remove_prefix(from_type.starts_with("const") ? 6 : 0);
-    to_type.remove_prefix(to_type.starts_with("const") ? 6 : 0);
-#ifdef FLOW_APPLE
-    from_type.remove_suffix(from_type.ends_with("&") ? 2 : 0);
-    to_type.remove_suffix(to_type.ends_with("&") ? 2 : 0);
-#else
-    from_type.remove_suffix(from_type.ends_with("&") ? 1 : 0);
-    to_type.remove_suffix(to_type.ends_with("&") ? 1 : 0);
-#endif
-
     if (from_type == to_type || to_type == TypeName_v<std::any>)
     {
         return true;
