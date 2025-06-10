@@ -5,6 +5,7 @@
 
 #include "Concepts.hpp"
 #include "Core.hpp"
+#include "Env.hpp"
 #include "Node.hpp"
 #include "TypeConversion.hpp"
 #include "TypeName.hpp"
@@ -55,9 +56,8 @@ class NodeFactory
     template<concepts::NodeType T>
     void UnregisterNodeClass(const std::string& category);
 
-    template<concepts::Function F>
-    void RegisterFunction(std::add_pointer_t<F> func, const std::string& category,
-                          const std::string& name = std::string{TypeName_v<T>});
+    template<concepts::Function F, F Func>
+    void RegisterFunction(const std::string& category, const std::string& name = std::string{TypeName_v<F>});
 
     /**
      * @brief Removes all nodes added by the given category object.
@@ -533,5 +533,11 @@ class FunctionNode : public Node
 };
 
 #define DECLARE_FUNCTION_NODE_TYPE(func) FunctionNode<decltype(func), func>
+
+template<concepts::Function F, F Func>
+void NodeFactory::RegisterFunction(const std::string& category, const std::string& name)
+{
+    return RegisterNodeClass<FunctionNode<F, Func>>(category, name);
+}
 
 FLOW_NAMESPACE_END
