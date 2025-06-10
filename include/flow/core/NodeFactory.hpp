@@ -21,9 +21,6 @@
 
 FLOW_NAMESPACE_START
 
-class Node;
-class Env;
-
 using CategoryMap = std::unordered_multimap<std::string, std::string>;
 
 /**
