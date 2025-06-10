@@ -420,11 +420,13 @@ class FunctionNode : public Node
             if constexpr (std::is_lvalue_reference_v<arg_t<Idx>> &&
                           !std::is_const_v<std::remove_reference_t<arg_t<Idx>>>)
             {
-                return GetEnv()->GetFactory()->Convert<arg_t<Idx>>(GetOutputData(IndexableName{input_names[Idx]}));
+                return GetEnv()->GetFactory()->template Convert<arg_t<Idx>>(
+                    GetOutputData(IndexableName{input_names[Idx]}));
             }
             else
             {
-                return GetEnv()->GetFactory()->Convert<arg_t<Idx>>(GetInputData(IndexableName{input_names[Idx]}));
+                return GetEnv()->GetFactory()->template Convert<arg_t<Idx>>(
+                    GetInputData(IndexableName{input_names[Idx]}));
             }
         }()...);
     }
