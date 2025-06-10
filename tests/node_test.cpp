@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "flow/core/Env.hpp"
+#include "flow/core/FunctionNode.hpp"
 #include "flow/core/Node.hpp"
 #include "flow/core/NodeData.hpp"
 #include "flow/core/NodeFactory.hpp"
@@ -151,9 +152,10 @@ int return_ref_test_method(int& i) { return i; }
 
 TEST(NodeTest, WrapFunctions)
 {
-    DECLARE_FUNCTION_NODE_TYPE(void_test_method) void_node({}, "void_test_method", test::env);
-    DECLARE_FUNCTION_NODE_TYPE(return_test_method) return_node({}, "return_test_method", test::env);
-    DECLARE_FUNCTION_NODE_TYPE(return_ref_test_method) return_ref_node({}, "return_ref_test_method", test::env);
+    FunctionNode<decltype(void_test_method), void_test_method> void_node({}, "void_test_method", test::env);
+    FunctionNode<decltype(return_test_method), return_test_method> return_node({}, "return_test_method", test::env);
+    FunctionNode<decltype(return_ref_test_method), return_ref_test_method> return_ref_node({}, "return_ref_test_method",
+                                                                                           test::env);
 
     ASSERT_EQ(void_node.GetInputPorts().size(), 1);
     ASSERT_EQ(return_node.GetInputPorts().size(), 1);
