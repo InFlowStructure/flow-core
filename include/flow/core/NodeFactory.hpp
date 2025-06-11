@@ -208,14 +208,10 @@ class NodeFactory
     }
 
   public:
-    /**
-     * @brief Event dispatcher that runs every time a new node class is registered.
-     */
+    /// Event dispatcher that runs every time a new node class is registered.
     EventDispatcher<std::string_view> OnNodeClassRegistered;
 
-    /**
-     * @brief Event dispatcher that runs every time a registered node class is unregistered.
-     */
+    /// Event dispatcher that runs every time a registered node class is unregistered.
     EventDispatcher<std::string_view> OnNodeClassUnregistered;
 
   private:

@@ -7,7 +7,7 @@
 
 FLOW_NAMESPACE_BEGIN
 
-Connection::Connection(UUID& start_node_id, const IndexableName& start_port_key, UUID& end_node_id,
+Connection::Connection(const UUID& start_node_id, const IndexableName& start_port_key, const UUID& end_node_id,
                        const IndexableName& end_port_key)
     : _id{UUID{}}, _start_node_id(start_node_id), _start_port_key{start_port_key}, _end_node_id{end_node_id},
       _end_port_key{end_port_key}

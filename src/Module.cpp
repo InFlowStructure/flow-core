@@ -27,6 +27,24 @@ const std::string Module::BinaryExtension = ".dylib";
 const std::string Module::BinaryExtension = ".so";
 #endif
 
+namespace {
+    // Get last system error message
+    std::string GetLastErrorMsg() {
+#ifdef FLOW_WINDOWS
+        DWORD error = GetLastError();
+        LPSTR messageBuffer = nullptr;
+        FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, error, 0, (LPSTR)&messageBuffer, 0, NULL);
+        std::string message(messageBuffer);
+        LocalFree(messageBuffer);
+        return message;
+#else
+        return dlerror();
+#endif
+    }
+}
+
 void Module::HandleDelete::operator()(void* handle)
 {
 #ifdef FLOW_WINDOWS
@@ -35,7 +53,7 @@ void Module::HandleDelete::operator()(void* handle)
     if (dlclose(handle) != 0)
 #endif
     {
-        throw std::runtime_error("Module handle failed to unload");
+        throw std::runtime_error(std::format("Module handle failed to unload: {}", GetLastErrorMsg()));
     }
 }
 
@@ -74,38 +92,64 @@ Module::~Module() { Unload(); }
 
 bool Module::Load(const std::filesystem::path& path)
 {
-    if (_handle)
-    {
-        return false;
+    if (_handle) return false;
+
+    try {
+        ValidatePath(path);
+        LoadMetadata(path);
+        LoadBinary(path.parent_path());
+        return true;
+    }
+    catch(const std::exception& e) {
+        throw std::runtime_error(std::format("Failed to load module: {} (path={})", 
+            e.what(), path.string()));
+    }
+}
+
+void Module::ValidatePath(const std::filesystem::path& path) const
+{
+    if (!std::filesystem::exists(path)) {
+        throw std::runtime_error(std::format("Path does not exist (path={})", 
+            path.string()));
     }
 
-    if (!std::filesystem::exists(path))
-    {
-        throw std::runtime_error(std::format("Path does not exist. (file={})", path.string()));
+    if (std::filesystem::is_regular_file(path) && 
+        path.extension() != ("." + FileExtension)) {
+        throw std::runtime_error(std::format(
+            "Invalid module extension (path={}, required={})", 
+            path.string(), FileExtension));
+    }
+}
+
+void Module::LoadMetadata(const std::filesystem::path& path)
+{
+    if (!std::filesystem::is_regular_file(path)) return;
+
+    std::ifstream module_fs(path);
+    if (!module_fs) {
+        throw std::runtime_error(std::format("Failed to open module file (path={})",
+            path.string()));
     }
 
-    if (std::filesystem::is_regular_file(path))
-    {
-        if (path.extension() != ("." + FileExtension))
-        {
-            throw std::runtime_error(
-                std::format("File is not a module. (file={}, extension={})", path.string(), FileExtension));
-        }
-
-        std::ifstream module_fs(path);
+    try {
         json module_j = json::parse(module_fs);
-
         Validate(module_j);
-
-        _name        = module_j["Name"];
-        _version     = module_j["Version"];
-        _author      = module_j["Author"];
+        
+        _name = module_j["Name"];
+        _version = module_j["Version"];
+        _author = module_j["Author"];
         _description = module_j["Description"];
     }
+    catch(const json::exception& e) {
+        throw std::runtime_error(std::format("Invalid module JSON: {}", e.what()));
+    }
+}
 
+void Module::LoadBinary(const std::filesystem::path& dir)
+{
     const std::string module_file_name = _name + BinaryExtension;
     std::filesystem::path module_binary_path;
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(path.parent_path()))
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(dir))
     {
         if (!std::filesystem::is_regular_file(entry) ||
             (entry.path().filename() != module_file_name && entry.path().filename() != ("lib" + module_file_name)))
@@ -143,12 +187,12 @@ bool Module::Load(const std::filesystem::path& path)
     {
         RegisterModule_func(_factory);
         _handle.reset(std::bit_cast<void*>(handle));
-        return true;
+        return;
     }
 
     HandleDelete{}(handle);
 
-    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (file={})", path.string()));
+    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (file={})", dir.string()));
 }
 
 bool Module::Unload()

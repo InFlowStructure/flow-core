@@ -25,6 +25,15 @@ class TypeRegistry
     template<typename T>
     using TypeMap = std::unordered_map<std::string_view, T>;
 
+    /**
+     * @brief Default conversion implementation between types.
+     *
+     * @tparam From The source type to convert from
+     * @tparam To The destination type to convert to
+     * @param data The shared node data to convert
+     *
+     * @returns Converted data if successful, original data otherwise
+     */
     template<typename From, typename To>
     static SharedNodeData Convert(const SharedNodeData& data)
     {
@@ -42,65 +51,94 @@ class TypeRegistry
         return data;
     }
 
+    /// Allow NodeFactory to access protected members
     friend class NodeFactory;
 
   public:
-    /**
-     * @brief Type alias for conversion function type.
-     */
+    /// Function type for implementing custom type conversions
     using ConversionFunc = std::function<SharedNodeData(const SharedNodeData& data)>;
 
     /**
-     * @brief Register a unidirectional conversion.
+     * @brief Register a one-way conversion between types.
      *
-     * @tparam From The type to convert from.
-     * @tparam To The type to convert to.
+     * @details When From and To are the same type, automatically registers additional
+     *          conversions for different reference and const qualifiers:
+     *          - lvalue references
+     *          - const lvalue references
+     *          - rvalue references
      *
-     * @param converter The conversion function for converting From to To.
+     * @tparam From Source type to convert from
+     * @tparam To Destination type to convert to
+     *
+     * @param converter Custom conversion function, defaults to built-in Convert
      */
     template<typename From, typename To>
     void RegisterUnidirectionalConversion(const ConversionFunc& converter = Convert<From, To>);
 
     /**
-     * @brief Register a bidirectional conversion.
+     * @brief Register conversions in both directions between two types.
      *
-     * @details Registers two conversions; 1) T to U, and 2) U to T.
+     * @details Registers both T->U and U->T conversions. For same-type conversions,
+     *          automatically handles reference and const variations through
+     *          RegisterUnidirectionalConversion.
      *
-     * @tparam T The first type.
-     * @tparam U The second type.
+     * @tparam T First type in the conversion pair
+     * @tparam U Second type in the conversion pair
      *
-     * @param from_to_converter Conversion function for T to U.
-     * @param to_from_converter Conversion function for U to T.
+     * @param from_to_converter Conversion function from T to U
+     * @param to_from_converter Conversion function from U to T
      */
     template<typename T, typename U>
     void RegisterBidirectionalConversion(const ConversionFunc& from_to_converter = Convert<T, U>,
                                          const ConversionFunc& to_from_converter = Convert<U, T>);
 
     /**
-     * @brief Default conversion method that is used when converting.
+     * @brief Convert data to a different type at runtime.
      *
-     * @param data The data to convert.
-     * @param to_type The type to convert the data to.
+     * @details Attempts to convert the given data using registered conversions.
+     *          Returns original data if:
+     *          - Input is null
+     *          - Types are the same
+     *          - Target type is std::any
+     *          - No conversion exists
      *
-     * @returns The converted data.
+     * @param data The data to convert
+     * @param to_type Target type name to convert to
+     *
+     * @returns Converted data if successful, original data otherwise
+     * @throws std::runtime_error if conversion exists but fails
      */
     SharedNodeData Convert(const SharedNodeData& data, std::string_view to_type) const;
 
     /**
-     * @brief Check if given types have a registered conversion.
+     * @brief Check if conversion exists between two types.
      *
-     * @param from_type The type name to convert from.
-     * @param to_type The type name to convert to.
+     * @details Returns true if either:
+     *          - Types are the same
+     *          - Target type is std::any
+     *          - A registered conversion exists
      *
-     * @returns true if \p from_type is convertible to \p to_type, false otherwise.
+     * @param from_type Source type name
+     * @param to_type Target type name
+     *
+     * @returns true if conversion is possible, false otherwise
      */
     bool IsConvertible(std::string_view from_type, std::string_view to_type) const;
 
   protected:
+    /**
+     * @brief Internal helper to register a type conversion.
+     *
+     * @tparam From Source type
+     * @tparam To Target type
+     *
+     * @param converter The conversion function to register
+     */
     template<typename From, typename To>
     void RegisterConversion(const ConversionFunc& converter = Convert<From, To>);
 
   private:
+    /// Storage for registered type conversion functions
     TypeMap<TypeMap<ConversionFunc>> _conversions;
 };
 

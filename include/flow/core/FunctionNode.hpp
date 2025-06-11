@@ -1,3 +1,6 @@
+// Copyright (c) 2024, Cisco Systems, Inc.
+// All rights reserved.
+
 #pragma once
 
 #include "Env.hpp"
@@ -9,32 +12,42 @@
 FLOW_NAMESPACE_BEGIN
 
 /**
- * @brief Structure that reveals the types of the return value and arguments of a function at compile-time.
- * @tparam F The function type being analyzed.
+ * @brief Extract function signature information at compile-time
+ *
+ * @tparam F Function type to analyze
  */
-template<typename F>
+template<concepts::Function F>
 struct FunctionTraits;
 
+/**
+ * @brief Specialization for regular function signatures
+ *
+ * @tparam R Return type
+ * @tparam Args Argument types
+ */
 template<typename R, typename... Args>
 struct FunctionTraits<R(Args...)>
 {
-    using ReturnType = R;
-    using ArgTypes   = std::tuple<Args...>;
+    using ReturnType                       = R;
+    using ArgTypes                         = std::tuple<Args...>;
+    static constexpr std::size_t arg_count = sizeof...(Args);
 };
 
 /**
- * @brief Node class that wraps a declared function.
+ * @brief Node that wraps a function into the graph system
  *
- * @details Wraps a declared function as a node type with inputs labeled in increasing alphabetical order starting at
- *          'a'. Requires that the function node be overloaded. If the function is overloaded, then supplying the
- *          specific overload to wrap is required.
+ * @details Automatically creates input/output ports based on function signature:
+ *          - Input ports for each function parameter
+ *          - Output port named "return" for the return value
+ *          - Reference parameters become output ports
  *
- * @tparam F
- * @tparam Func
+ * @tparam F Function type (e.g., int(float, bool))
+ * @tparam Func Pointer to concrete function implementation
  */
-template<typename F, std::add_pointer_t<std::remove_pointer_t<F>> Func>
+template<concepts::Function F, std::add_pointer_t<std::remove_pointer_t<F>> Func>
 class FunctionNode : public Node
 {
+    /// Helper to decay tuple types while preserving references
     template<typename Tuple>
     struct decayed_tuple;
 
@@ -55,6 +68,7 @@ class FunctionNode : public Node
     template<std::size_t Idx>
     using arg_t = typename std::tuple_element_t<Idx, arg_ts>;
 
+    /// Name of the return value output port
     static constexpr const char* return_output_name = "return";
 
   private:
@@ -195,8 +209,6 @@ class FunctionNode : public Node
     static inline std::array<std::string, std::tuple_size_v<arg_ts>> input_names{""};
     decayed_tuple_t<arg_ts> _arguments;
 };
-
-#define DECLARE_FUNCTION_NODE_TYPE(func) FunctionNode<decltype(func), func>
 
 template<concepts::Function F, F Func>
 void NodeFactory::RegisterFunction(const std::string& category, const std::string& name)
