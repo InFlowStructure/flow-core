@@ -150,12 +150,18 @@ void void_test_method(int) {}
 int return_test_method(int i) { return i; }
 int return_ref_test_method(int& i) { return i; }
 
+struct TestData
+{
+};
+void custom_type(const TestData&) {}
+
 TEST(NodeTest, WrapFunctions)
 {
     FunctionNode<decltype(void_test_method), void_test_method> void_node({}, "void_test_method", test::env);
     FunctionNode<decltype(return_test_method), return_test_method> return_node({}, "return_test_method", test::env);
     FunctionNode<decltype(return_ref_test_method), return_ref_test_method> return_ref_node({}, "return_ref_test_method",
                                                                                            test::env);
+    FunctionNode<decltype(custom_type), custom_type> custom_type_node({}, "custom_type", test::env);
 
     ASSERT_EQ(void_node.GetInputPorts().size(), 1);
     ASSERT_EQ(return_node.GetInputPorts().size(), 1);
