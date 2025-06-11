@@ -88,22 +88,46 @@ class TypeRegistry
      */
     bool IsConvertible(std::string_view from_type, std::string_view to_type) const;
 
+  protected:
+    template<typename From, typename To>
+    void RegisterConversion(const ConversionFunc& converter = Convert<From, To>);
+
   private:
     TypeMap<TypeMap<ConversionFunc>> _conversions;
 };
 
 template<typename From, typename To>
-void TypeRegistry::RegisterUnidirectionalConversion(const ConversionFunc& converter)
+void TypeRegistry::RegisterConversion(const ConversionFunc& converter)
 {
     _conversions[TypeName_v<From>].emplace(TypeName_v<To>, converter);
+}
+
+template<typename From, typename To>
+void TypeRegistry::RegisterUnidirectionalConversion(const ConversionFunc& converter)
+{
+    RegisterConversion<std::decay_t<From>, std::decay_t<To>>(converter);
+
+    if constexpr (std::is_same_v<std::decay_t<From>, std::decay_t<To>>)
+    {
+        RegisterConversion<std::decay_t<From>, std::add_lvalue_reference_t<std::decay_t<To>>>();
+        RegisterConversion<std::decay_t<From>, std::add_lvalue_reference_t<std::add_const_t<std::decay_t<To>>>>();
+        RegisterConversion<std::decay_t<From>, std::add_rvalue_reference_t<std::decay_t<To>>>();
+        RegisterConversion<std::add_const_t<std::decay_t<From>>,
+                           std::add_lvalue_reference_t<std::add_const_t<std::decay_t<To>>>>();
+        RegisterConversion<std::add_lvalue_reference_t<std::decay_t<From>>, std::decay_t<To>>();
+        RegisterConversion<std::add_lvalue_reference_t<std::decay_t<From>>,
+                           std::add_lvalue_reference_t<std::add_const_t<std::decay_t<To>>>>();
+        RegisterConversion<std::add_lvalue_reference_t<std::add_const_t<std::decay_t<From>>>, std::decay_t<To>>();
+        RegisterConversion<std::add_rvalue_reference_t<std::decay_t<From>>, std::decay_t<To>>();
+    }
 }
 
 template<typename From, typename To>
 void TypeRegistry::RegisterBidirectionalConversion(const ConversionFunc& from_to_converter,
                                                    const ConversionFunc& to_from_converter)
 {
-    _conversions[TypeName_v<From>].emplace(TypeName_v<To>, from_to_converter);
-    _conversions[TypeName_v<To>].emplace(TypeName_v<From>, to_from_converter);
+    RegisterUnidirectionalConversion<From, To>(from_to_converter);
+    RegisterUnidirectionalConversion<To, From>(to_from_converter);
 }
 
 FLOW_NAMESPACE_END

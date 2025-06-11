@@ -13,7 +13,8 @@
 
 FLOW_NAMESPACE_BEGIN
 
-Env::Env(std::shared_ptr<NodeFactory> factory) : _factory{std::move(factory)}, _pool{std::make_unique<thread_pool>(10)}
+Env::Env(std::shared_ptr<NodeFactory> factory, const Settings& settings)
+    : _factory{std::move(factory)}, _pool{std::make_unique<thread_pool>(settings.MaxThreads)}
 {
 
     _factory->RegisterCompleteConversion<int, std::int8_t, std::int16_t, std::int32_t, std::int64_t, std::uint8_t,
