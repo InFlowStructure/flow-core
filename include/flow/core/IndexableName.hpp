@@ -6,7 +6,9 @@
 #include "Core.hpp"
 
 #include <array>
+#include <compare>
 #include <cstdint>
+#include <stdexcept>
 #include <string_view>
 
 FLOW_NAMESPACE_BEGIN

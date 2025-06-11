@@ -9,8 +9,10 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <chrono>
+#include <map>
 #include <memory>
 #include <span>
+#include <string>
 #include <type_traits>
 
 FLOW_NAMESPACE_BEGIN

@@ -5,10 +5,14 @@
 
 #include "Connection.hpp"
 #include "Core.hpp"
+#include "IndexableName.hpp"
+#include "UUID.hpp"
 
+#include <memory>
 #include <mutex>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 FLOW_NAMESPACE_BEGIN
 
