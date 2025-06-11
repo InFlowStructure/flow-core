@@ -3,6 +3,8 @@
 
 #include "flow/core/Connection.hpp"
 
+#include <nlohmann/json.hpp>
+
 FLOW_NAMESPACE_START
 
 Connection::Connection(UUID& start_node_id, const IndexableName& start_port_key, UUID& end_node_id,

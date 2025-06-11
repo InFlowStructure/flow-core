@@ -44,6 +44,9 @@ concept Duration = type_traits::is_specialization_of_v<T, std::chrono::duration>
 template<class E>
 concept Enumeration = std::is_enum_v<E>;
 
+template<class R>
+concept Reference = std::is_reference_v<R>;
+
 template<typename T>
 concept String = std::is_convertible_v<T, std::string_view>;
 
@@ -53,6 +56,9 @@ concept CopyablePointer = std::is_pointer_v<T> || type_traits::is_specialization
 
 template<class N>
 concept NodeType = std::is_base_of_v<Node, N>;
+
+template<class F>
+concept Function = std::is_function_v<F>;
 
 template<typename T>
 concept OnlyMoveable = std::is_move_constructible_v<T> && std::is_move_assignable_v<T> &&

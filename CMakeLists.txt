@@ -17,7 +17,6 @@ endif()
 
 option(flow-core_BUILD_TESTS "Build tests - requires gtest" OFF)
 option(flow-core_INSTALL "Add installation targets" OFF)
-option(flow-core_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 
 # -----------------------------------------------------------------------------
 # Dependencies
@@ -42,6 +41,7 @@ add_library(${PROJECT_NAME} SHARED
   src/Connections.cpp
   src/Env.cpp
   src/Graph.cpp
+  src/Module.cpp
   src/Node.cpp
   src/NodeFactory.cpp
   src/Port.cpp
@@ -72,7 +72,7 @@ if(APPLE)
   )
 elseif(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-  target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4 /MP)
   target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 else()
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)

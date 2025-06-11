@@ -6,7 +6,9 @@
 #include "Connection.hpp"
 #include "Core.hpp"
 
+#include <mutex>
 #include <string_view>
+#include <unordered_map>
 
 FLOW_NAMESPACE_START
 

@@ -1,6 +1,8 @@
 # flow-core
 
 [![CMake](https://github.com/InFlowStructure/flow-core/actions/workflows/cmake.yml/badge.svg)](https://github.com/InFlowStructure/flow-core/actions/workflows/cmake.yml)
+[![License: MIT](https://img.shields.io/github/license/InFlowStructure/flow-core)](https://github.com/InFlowStructure/flow-core/blob/main/LICENSE)
+[![Language: C++20](https://img.shields.io/badge/Language-C%2B%2B20%20-blue)](https://en.cppreference.com/w/cpp/20)
 
 A cross-platform C++20 graph based code engine for building easily modified code flows on the fly. Intended as a Low-Code / No-Code solution.
 
@@ -15,11 +17,6 @@ cmake --build build --parallel
 To build tests, configure the build directory with the following
 ```bash
 cmake -B build -Dflow-core_BUILD_TESTS=ON
-```
-
-To use JSON installed on your system instead of the submodule:
-```bash
-cmake -B build -Dflow-core_USE_EXTERNAL_JSON=ON
 ```
 
 ## Installing
@@ -41,6 +38,3 @@ cmake --install build
 This project depends on the following open source projects:
 - [nlohmann_json](https://github.com/nlohmann/json)
 - [thread-pool](https://github.com/bshoshany/thread-pool)
-
-The documentation for this project uses [doxygen-aesome-css](https://github.com/jothepro/doxygen-awesome-css).
-

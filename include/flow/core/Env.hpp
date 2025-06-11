@@ -3,14 +3,15 @@
 
 #pragma once
 
-#include "Connection.hpp"
 #include "Core.hpp"
-#include "Graph.hpp"
+#include "Node.hpp"
+#include "NodeFactory.hpp"
 #include "UUID.hpp"
 
 #include <BS_thread_pool.hpp>
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -39,30 +40,12 @@ class Env : public std::enable_shared_from_this<Env>
     Env(const Env&) = delete;
 
     /**
-     * @brief Creator method which constructs inly shared pointers.
+     * @brief Creator method which constructs only shared pointers.
      */
     static std::shared_ptr<Env> Create(std::shared_ptr<NodeFactory> factory)
     {
         return std::shared_ptr<Env>(new Env(std::move(factory)));
     }
-
-    /**
-     * @brief Load custom Flow module.
-     * @param module_file The module file to load.
-     */
-    void LoadModule(const std::filesystem::path& module_file);
-
-    /**
-     * @brief Load custom Flow modules from a whole directory.
-     * @param module_directory The directory from which to load module files.
-     */
-    void LoadModules(const std::filesystem::path& module_directory);
-
-    /**
-     * @brief Unloads a specified Flow module that has previously been loaded.
-     * @param module_filename The module filename to unload.
-     */
-    void UnloadModule(const std::filesystem::path& module_filename);
 
     /**
      * @brief Gets the current factory for building nodes.
@@ -151,9 +134,6 @@ class Env : public std::enable_shared_from_this<Env>
 
     /// The thread pool to use for executing graphs.
     std::unique_ptr<thread_pool> _pool;
-
-    /// Keyed list of loaded module handles.
-    std::unordered_map<std::string, void*> _loaded_modules;
 };
 
 FLOW_NAMESPACE_END

@@ -3,13 +3,13 @@
 
 #include "flow/core/TypeConversion.hpp"
 
+#include <any>
+
 FLOW_NAMESPACE_START
 
 SharedNodeData TypeRegistry::Convert(const SharedNodeData& data, std::string_view to_type) const
 {
-    if (!data) return nullptr;
-
-    if (data->Type() == to_type || to_type == TypeName_v<std::any>)
+    if (!data || data->Type() == to_type || to_type == TypeName_v<std::any>)
     {
         return data;
     }

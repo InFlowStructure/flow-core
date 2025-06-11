@@ -5,6 +5,8 @@
 
 #include "flow/core/Env.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <memory>
 #include <stdarg.h>
 #include <utility>
@@ -30,6 +32,14 @@ catch (const std::exception& e)
 catch (const std::string& e)
 {
     OnError.Broadcast(std::runtime_error(e));
+}
+catch (const char* e)
+{
+    OnError.Broadcast(std::runtime_error(e));
+}
+catch (int e)
+{
+    OnError.Broadcast(std::runtime_error(std::to_string(e)));
 }
 catch (...)
 {
@@ -62,6 +72,10 @@ void Node::Restore(const json& p)
         RestoreInputs(p["inputs"]);
     }
 }
+
+json Node::SaveInputs() const { return {}; }
+
+void Node::RestoreInputs(const json&) {}
 
 void Node::AddInput(std::string_view key, const std::string& caption, std::string_view type, SharedNodeData data)
 {
@@ -107,6 +121,10 @@ void Node::SetOutputData(const IndexableName& key, SharedNodeData data, bool emi
     }
 }
 
-void Node::EmitUpdate(const IndexableName& key, const SharedNodeData& data) { OnEmitOutput.Broadcast(ID(), key, data); }
+void Node::EmitUpdate(const IndexableName& key, const SharedNodeData& data)
+{
+    _propagate_output_update(ID(), key, data);
+    OnEmitOutput.Broadcast(ID(), key, data);
+}
 
 FLOW_NAMESPACE_END

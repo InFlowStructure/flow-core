@@ -20,7 +20,6 @@
 
 FLOW_NAMESPACE_START
 
-class Node;
 class Env;
 
 using CategoryMap = std::unordered_multimap<std::string, std::string>;
@@ -46,7 +45,7 @@ class NodeFactory
      * @param name The friendly name of the node to register it under.
      */
     template<concepts::NodeType T>
-    void RegisterNodeClass(const std::string& category, const std::string& name);
+    void RegisterNodeClass(const std::string& category, const std::string& name = std::string{TypeName_v<T>});
 
     /**
      * @brief Removes a node's construction method from the factory.
@@ -54,6 +53,9 @@ class NodeFactory
      */
     template<concepts::NodeType T>
     void UnregisterNodeClass(const std::string& category);
+
+    template<concepts::Function F, F Func>
+    void RegisterFunction(const std::string& category, const std::string& name = std::string{TypeName_v<F>});
 
     /**
      * @brief Removes all nodes added by the given category object.
@@ -246,7 +248,8 @@ class Category
      * @param name The friendly name of the node to register it under.
      */
     template<concepts::NodeType T>
-    void RegisterNodeClass(const std::shared_ptr<NodeFactory>& factory, const std::string& friendly_name)
+    void RegisterNodeClass(const std::shared_ptr<NodeFactory>& factory,
+                           const std::string& friendly_name = std::string{TypeName_v<T>})
     {
         factory->RegisterNodeClass<T>(_category_name, friendly_name);
         _classes.insert(std::make_pair(std::string{TypeName_v<T>}, friendly_name));

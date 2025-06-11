@@ -37,7 +37,7 @@ class Graph
      * @brief Get a reference to the UUID of the Graph.
      * @returns The UUID of the graph.
      */
-    const UUID& ID() const noexcept { return _id; }
+    [[nodiscard]] const UUID& ID() const noexcept { return _id; }
 
     /**
      * @brief Runs compute on the source nodes of the graph, starting the flow.

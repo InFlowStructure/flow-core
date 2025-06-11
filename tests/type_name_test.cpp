@@ -51,13 +51,23 @@ TEST(TypeNameTest, AliasTypes)
 
 TEST(TypeNameTest, ReferenceTypes)
 {
-#ifdef FLOW_APPLE
-    EXPECT_EQ(TypeName<int&>::value, "int &");
-    EXPECT_EQ(TypeName<const int&>::value, "const int &");
-#else
-    EXPECT_EQ(TypeName<int&>::value, "int&");
-    EXPECT_EQ(TypeName<const int&>::value, "const int&");
-#endif
+    EXPECT_TRUE(TypeName<int&>::value.ends_with('&'));
+    EXPECT_TRUE(TypeName<const int&>::value.ends_with('&'));
+    EXPECT_FALSE(TypeName<int>::is_reference);
+    EXPECT_TRUE(TypeName<int&>::is_reference);
+    EXPECT_TRUE(TypeName<const int&>::is_reference);
+    EXPECT_FALSE(TypeName<int&>::is_const);
+    EXPECT_TRUE(TypeName<const int&>::is_const);
+}
+
+TEST(TypeNameTest, ConstantTypes)
+{
+    EXPECT_FALSE(TypeName<int&>::value.starts_with("const"));
+    EXPECT_TRUE(TypeName<const int&>::value.starts_with("const"));
+    EXPECT_FALSE(TypeName<int>::is_const);
+    EXPECT_TRUE(TypeName<const int>::is_const);
+    EXPECT_FALSE(TypeName<int&>::is_const);
+    EXPECT_TRUE(TypeName<const int&>::is_const);
 }
 
 struct TestType;

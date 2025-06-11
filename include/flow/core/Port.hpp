@@ -7,7 +7,7 @@
 #include "IndexableName.hpp"
 #include "NodeData.hpp"
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <stdint.h>
 #include <string_view>

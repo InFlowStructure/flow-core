@@ -11,7 +11,7 @@
 #include "Port.hpp"
 #include "UUID.hpp"
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <mutex>
 #include <string>
@@ -136,8 +136,8 @@ class Node
   protected:
     virtual void Compute() = 0;
 
-    virtual json SaveInputs() const { return {}; }
-    virtual void RestoreInputs(const json&) {}
+    virtual json SaveInputs() const;
+    virtual void RestoreInputs(const json&);
 
   protected:
     void AddInput(std::string_view key, const std::string& caption, std::string_view type, SharedNodeData data);
@@ -151,9 +151,9 @@ class Node
     }
 
     template<typename T>
-    void AddRequiredInput(std::string_view key, const std::string& caption, T& data)
+    void AddRequiredInput(std::string_view key, const std::string& caption, std::remove_reference_t<T>& data)
     {
-        return AddInput(key, caption, TypeName_v<T&>, MakeRefNodeData<T>(data));
+        return AddInput(key, caption, TypeName_v<T>, MakeRefNodeData<T>(data));
     }
 
     template<typename T>
@@ -165,14 +165,28 @@ class Node
     void EmitUpdate(const IndexableName& key, const SharedNodeData& data);
 
   public:
+    /// Event broadcasted called on Compute.
     EventDispatcher<> OnCompute;
+
+    /// Event broadcasted on setting an input.
     EventDispatcher<const IndexableName&, const SharedNodeData&> OnSetInput;
+
+    /// Event broadcasted on setting an output.
     EventDispatcher<const IndexableName&, const SharedNodeData&> OnSetOutput;
+
+    /// Event broadcasted on Compute  throwing an error.
     EventDispatcher<const std::exception&> OnError;
+
+    /// Event broadcasted on output updates being emitted.
     EventDispatcher<const UUID&, const IndexableName&, const SharedNodeData&> OnEmitOutput;
 
   protected:
     mutable std::mutex _mutex;
+
+    /// Event to be used by the graph to propagate output updates.
+    Event<const UUID&, const IndexableName&, const SharedNodeData&> _propagate_output_update;
+
+    friend class Graph;
 
   private:
     UUID _id;
@@ -184,34 +198,5 @@ class Node
     PortMap _input_ports;
     PortMap _output_ports;
 };
-
-#define OVERLOAD_PORT_TYPE(Original, As)                                                                               \
-    template<>                                                                                                         \
-    inline auto FLOW_NAMESPACE::Node::GetInputData<Original>(const IndexableName& key) const noexcept                  \
-    {                                                                                                                  \
-        return GetInputData<As>(key);                                                                                  \
-    }                                                                                                                  \
-    template<>                                                                                                         \
-    inline auto FLOW_NAMESPACE::Node::GetOutputData<Original>(const IndexableName& key) const noexcept                 \
-    {                                                                                                                  \
-        return GetOutputData<As>(key);                                                                                 \
-    }                                                                                                                  \
-    template<>                                                                                                         \
-    inline void FLOW_NAMESPACE::Node::AddInput<Original>(std::string_view key, const std::string& caption,             \
-                                                         SharedNodeData data)                                          \
-    {                                                                                                                  \
-        return AddInput<As>(key, caption, std::move(data));                                                            \
-    }                                                                                                                  \
-    template<>                                                                                                         \
-    inline void FLOW_NAMESPACE::Node::AddOutput<Original>(std::string_view key, const std::string& caption,            \
-                                                          SharedNodeData data)                                         \
-    {                                                                                                                  \
-        return AddOutput<As>(key, caption, std::move(data));                                                           \
-    }
-
-/**
- * Specialise const char* to use std::string for type safety.
- */
-OVERLOAD_PORT_TYPE(const char*, std::string);
 
 FLOW_NAMESPACE_END
