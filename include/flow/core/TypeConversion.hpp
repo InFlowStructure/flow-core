@@ -30,10 +30,18 @@ class TypeRegistry
     {
         if (auto from_data = CastNodeData<From>(data))
         {
-            return MakeNodeData<To>(*from_data);
+            if constexpr (std::is_rvalue_reference_v<To>)
+            {
+                return MakeNodeData<To, From>(std::move(*from_data));
+            }
+            else
+            {
+                return MakeNodeData<To, From>(*from_data);
+            }
         }
         return data;
     }
+
     friend class NodeFactory;
 
   public:
