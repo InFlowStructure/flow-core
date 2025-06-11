@@ -4,6 +4,7 @@
 #include "flow/core/Connections.hpp"
 
 #include <algorithm>
+#include <iterator>
 
 FLOW_NAMESPACE_BEGIN
 
