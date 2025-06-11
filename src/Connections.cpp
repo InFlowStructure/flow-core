@@ -3,6 +3,8 @@
 
 #include "flow/core/Connections.hpp"
 
+#include <algorithm>
+
 FLOW_NAMESPACE_BEGIN
 
 SharedConnection& Connections::Add(UUID start_id, const IndexableName& start_port_key, UUID end_id,
