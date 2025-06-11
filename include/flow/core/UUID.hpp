@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <string>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 /**
  * @brief Universally Unique IDentifier class
@@ -45,16 +45,20 @@ class UUID
      */
     constexpr void swap(UUID& other) { _id.swap(other._id); }
 
-  private:
-    std::size_t hash() const
+    /**
+     * @brief Compute hash value for UUID.
+     * @returns Size_t hash of the UUID data.
+     */
+    [[nodiscard]] std::size_t hash() const noexcept
     {
-        const uint64_t* half = reinterpret_cast<const uint64_t*>(_id.data());
+        const auto* half = std::bit_cast<const uint64_t*>(_id.data());
         return half[0] ^ half[1];
     }
 
     friend struct std::hash<UUID>;
 
   private:
+    /// Storage for 16-byte UUID value
     std::array<std::byte, 16> _id;
 };
 
@@ -63,13 +67,13 @@ FLOW_NAMESPACE_END
 namespace std
 {
 template<>
-struct hash<FLOW_NAMESPACE::UUID>
+struct hash<flow::UUID>
 {
-    std::size_t operator()(const FLOW_NAMESPACE::UUID& id) const { return id.hash(); }
+    std::size_t operator()(const flow::UUID& id) const { return id.hash(); }
 };
 
 template<>
-inline void swap<FLOW_NAMESPACE::UUID>(FLOW_NAMESPACE::UUID& lhs, FLOW_NAMESPACE::UUID& rhs) noexcept
+inline void swap<flow::UUID>(flow::UUID& lhs, flow::UUID& rhs) noexcept
 {
     lhs.swap(rhs);
 }

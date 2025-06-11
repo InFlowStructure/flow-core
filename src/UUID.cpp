@@ -113,7 +113,7 @@ std::array<std::byte, 16> UUIDFromString(const std::string& uuid_str)
 #endif
 } // namespace
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 UUID::UUID() : _id{::GenerateUUID()} {}
 

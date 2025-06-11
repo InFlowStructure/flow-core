@@ -3,7 +3,7 @@
 
 #include "flow/core/Port.hpp"
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 Port::Port(const IndexableName& key, const std::string& caption, std::string_view type, SharedNodeData data,
            bool required, std::size_t index)

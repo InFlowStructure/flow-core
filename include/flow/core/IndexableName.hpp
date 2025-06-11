@@ -6,22 +6,27 @@
 #include "Core.hpp"
 
 #include <array>
+#include <compare>
 #include <cstdint>
+#include <stdexcept>
 #include <string_view>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 /**
  * @brief Unique hashable integer representation of string.
  *
- * @details IndexableName creates an integer representation of string which can be quickly compared and easily stored.
- *          It maintains an unowned reference to the name that was used, which should generally be a const char* or a
- *          string that you know will never go away. The name reference is kept to help with visualizing the names when
- *          printed or debugged.
+ * @details IndexableName creates an integer representation of string using CRC-64-ECMA for
+ *          collision-resistant hashing. The hash is computed at compile-time when possible.
+ *          The name reference is kept to help with visualization and debugging, but the hash
+ *          is used for all comparisons and storage.
+ *
+ * @note Uses CRC-64-ECMA polynomial: 0xC96C5795D7870F42
  */
 class IndexableName
 {
-    /// The generated CRC-64 table.
+  private:
+    /// CRC-64-ECMA lookup table for efficient hash computation
     static constexpr std::array<std::size_t, 256> crc_table = [] {
         std::array<std::size_t, 256> table;
         for (std::size_t c = 0; c < 256; ++c)
@@ -40,11 +45,11 @@ class IndexableName
     }();
 
     /**
-     * @brief Reverses the bits in a 64 bit integer.
-     * @param value The value to reverse.
-     * @returns The reversed value.
+     * @brief Reverses bits in a 64-bit integer for CRC finalization.
+     * @param value The value to reverse
+     * @returns The bit-reversed value
      */
-    static constexpr std::size_t reverse_bits(std::size_t value)
+    static constexpr std::size_t reverse_bits(std::size_t value) noexcept
     {
         std::size_t result = 0;
         for (std::size_t i = 0; i < 64; ++i, value >>= 1)
@@ -58,10 +63,16 @@ class IndexableName
     /**
      * @brief Computes CRC-64-ECMA hash of string.
      * @param str The string to hash
-     * @returns The hash of the given string.
+     * @returns The CRC-64 hash of the given string
+     * @throws std::invalid_argument if str is empty
      */
     static constexpr std::size_t hash(std::string_view str)
     {
+        if (str.empty())
+        {
+            throw std::invalid_argument("IndexableName cannot be empty");
+        }
+
         std::size_t crc = 0;
         for (auto c : str)
         {
@@ -72,8 +83,12 @@ class IndexableName
     }
 
   public:
-    constexpr IndexableName(std::string_view name) : _value{hash(name)}, _name{name} {}
-    constexpr IndexableName(const char* name) : IndexableName(std::string_view(name)) {}
+    /// Construct from string view, computing hash at compile time when possible
+    constexpr IndexableName(std::string_view name) noexcept : _value{hash(name)}, _name{name} {}
+
+    /// Construct from C-string, computing hash at compile time when possible
+    constexpr IndexableName(const char* name) noexcept : IndexableName(std::string_view(name)) {}
+
     constexpr IndexableName(const IndexableName&) = default;
     constexpr IndexableName(IndexableName&&)      = default;
 
@@ -85,11 +100,20 @@ class IndexableName
     constexpr operator std::size_t() const { return _value; }
     constexpr operator std::string_view() const { return _name; }
 
+    /// Get the hash value
+    [[nodiscard]] constexpr std::size_t value() const noexcept { return _value; }
+
+    /// Get the original string
+    [[nodiscard]] constexpr std::string_view name() const noexcept { return _name; }
+
   public:
     static const IndexableName None;
 
   private:
+    /// CRC-64-ECMA hash of the name
     std::size_t _value;
+
+    /// Reference to the original string
     std::string_view _name;
 };
 
@@ -104,7 +128,7 @@ inline constexpr const IndexableName IndexableName::None{"None"};
 FLOW_NAMESPACE_END
 
 template<>
-struct std::hash<FLOW_NAMESPACE::IndexableName>
+struct std::hash<flow::IndexableName>
 {
-    std::size_t operator()(const FLOW_NAMESPACE::IndexableName& name) const { return std::size_t(name); }
+    std::size_t operator()(const flow::IndexableName& name) const { return std::size_t(name); }
 };

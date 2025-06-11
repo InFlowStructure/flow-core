@@ -4,25 +4,32 @@
 #pragma once
 
 #include "Core.hpp"
-#include "Node.hpp"
 #include "NodeFactory.hpp"
-#include "UUID.hpp"
 
 #include <BS_thread_pool.hpp>
-#include <nlohmann/json_fwd.hpp>
 
-#include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
 
-using json        = nlohmann::json;
-using thread_pool = BS::thread_pool<>;
+FLOW_NAMESPACE_BEGIN
 
-FLOW_NAMESPACE_START
+using thread_pool = BS::thread_pool<>;
 
 class Node;
 class NodeFactory;
+
+/**
+ * @brief Settings for the flow environment.
+ *
+ * @details Holds configuration options for the Env, such as the maximum number of threads in the thread pool.
+ */
+struct Settings
+{
+    /// The maximum number of threads in the thread pool.
+    std::size_t MaxThreads = 10;
+};
 
 /**
  * @brief Flow environment
@@ -30,25 +37,37 @@ class NodeFactory;
  * @details Env represents the environment in which all flows run. It holds the thread pool, provides easy access to
  *          system env vars, and more.
  */
-class Env : public std::enable_shared_from_this<Env>
+class Env
 {
-    explicit Env(std::shared_ptr<NodeFactory> factory);
+    /**
+     * @brief Constructs an Env with the given node factory and settings.
+     *
+     * @param factory The node factory to use for constructing available nodes.
+     * @param settings The settings for the environment.
+     */
+    explicit Env(std::shared_ptr<NodeFactory> factory, const Settings& settings);
 
   public:
+    /// Type alias for a function that visits a shared node.
     using VisitorFunction = std::function<void(const SharedNode&)>;
 
     Env(const Env&) = delete;
 
     /**
      * @brief Creator method which constructs only shared pointers.
+     *
+     * @param factory The node factory to use for constructing available nodes.
+     * @param settings The settings for the environment. Defaults to default-constructed Settings.
+     * @returns A shared pointer to the created Env.
      */
-    static std::shared_ptr<Env> Create(std::shared_ptr<NodeFactory> factory)
+    static std::shared_ptr<Env> Create(std::shared_ptr<NodeFactory> factory, const Settings& settings = {})
     {
-        return std::shared_ptr<Env>(new Env(std::move(factory)));
+        return std::shared_ptr<Env>(new Env(std::move(factory), settings));
     }
 
     /**
      * @brief Gets the current factory for building nodes.
+     * @returns The shared pointer to the NodeFactory.
      */
     [[nodiscard]] std::shared_ptr<NodeFactory> GetFactory() const { return _factory; }
 
@@ -74,8 +93,11 @@ class Env : public std::enable_shared_from_this<Env>
     /**
      * @brief Add a sequence of tasks to the thread pool queue.
      *
-     * @tparam F The task type
+     * @tparam I The index type.
+     * @tparam F The task type.
      * @tparam Args Variadic list of argument types for the task.
+     * @param first_index The first index in the sequence.
+     * @param last_index The last index in the sequence.
      * @param task A function to be executed on a thread from the pool. MUST have a first argument of the index.
      * @param args Variadic list of arguments for the task.
      */
@@ -88,8 +110,11 @@ class Env : public std::enable_shared_from_this<Env>
     /**
      * @brief Parallelise a loop task into blocks, one index at a time.
      *
-     * @tparam F The task type
+     * @tparam I The index type.
+     * @tparam F The task type.
      * @tparam Args Variadic list of argument types for the task.
+     * @param first_index The first index in the loop.
+     * @param last_index The last index in the loop.
      * @param task A function to be executed on a thread from the pool. MUST have a first argument of the index.
      * @param num_blocks The maximum number of blocks to split the task into. Default is 0, which means blocks will be
      *                   equal to the number of threads in the pool.
@@ -105,8 +130,11 @@ class Env : public std::enable_shared_from_this<Env>
     /**
      * @brief Parallelise a loop task into blocks, one range at a time.
      *
-     * @tparam F The task type
+     * @tparam I The index type.
+     * @tparam F The task type.
      * @tparam Args Variadic list of argument types for the task.
+     * @param first_index The first index in the range.
+     * @param last_index The last index in the range.
      * @param task A function to be executed on a thread from the pool. MUST have two arguments, which are the start and
      *             end indices.
      * @param num_blocks The maximum number of blocks to split the task into. Default is 0, which means blocks will be
@@ -123,10 +151,11 @@ class Env : public std::enable_shared_from_this<Env>
 
     /**
      * @brief Returns a system environment variable value.
-     * @param varname The name of a system environment variable.
+     *
+     * @param name The name of a system environment variable.
      * @returns The value of the environment variable.
      */
-    [[nodiscard]] std::string GetVar(const std::string& varname) const;
+    [[nodiscard]] std::string GetVar(const std::string& name) const;
 
   private:
     /// The node factory to use for constructing available nodes.

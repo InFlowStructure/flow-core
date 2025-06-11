@@ -9,11 +9,14 @@
 #include "IndexableName.hpp"
 #include "Node.hpp"
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 /**
  * @brief The core of the engine, holds nodes and their connections.
@@ -111,6 +114,12 @@ class Graph
     [[nodiscard]] const std::shared_ptr<Env>& GetEnv() const noexcept { return _env; }
 
     /**
+     * @brief Get all nodes in the graph
+     * @returns Const reference to the node map
+     */
+    [[nodiscard]] const auto& GetNodes() const noexcept { return _nodes; }
+
+    /**
      * @brief Get all source nodes in the graph.
      * @details Gets all source nodes. A source node is a node that has no or only output connections.
      * @returns A list of all source nodes.
@@ -175,43 +184,52 @@ class Graph
      */
     void SetName(std::string new_name) noexcept { _name = std::move(new_name); }
 
+    /**
+     * @brief Internal helper to validate node before operations
+     * @param node Node to validate
+     * @returns true if node is valid and belongs to this graph
+     */
+    [[nodiscard]] bool ValidateNode(const SharedNode& node) const noexcept
+    {
+        return node && _nodes.contains(node->ID());
+    }
+
     friend void to_json(json& j, const Graph& g);
     friend void from_json(const json& j, Graph& g);
 
   public:
-    /**
-     * @brief Event run on Graph errors being thrown.
-     */
+    /// Event run on Graph errors being thrown.
     EventDispatcher<const std::exception&> OnError;
 
-    /**
-     * @brief Event run on Graph when a new node is added.
-     */
+    /// Event run on Graph when a new node is added.
     EventDispatcher<const SharedNode&> OnNodeAdded;
 
-    /**
-     * @brief Event run on Graph when a new node is removed.
-     */
+    /// Event run on Graph when a new node is removed.
     EventDispatcher<const SharedNode&> OnNodeRemoved;
 
-    /**
-     * @brief Event run when 2 nodes are connected.
-     */
+    /// Event run when 2 nodes are connected.
     EventDispatcher<const SharedConnection&> OnNodesConnected;
 
-    /**
-     * @brief Event run on Graph when a connection is removed.
-     */
+    /// Event run on Graph when a connection is removed.
     EventDispatcher<const SharedConnection&> OnNodesDisconnected;
 
   protected:
+    /// Mutex for thread-safe node operations
     mutable std::mutex _nodes_mutex;
 
+    /// Unique identifier for this graph instance
     const UUID _id;
+
+    /// User-friendly name for the graph
     std::string _name;
+
+    /// Shared environment for all nodes in the graph
     std::shared_ptr<Env> _env;
 
+    /// Storage for all connections between nodes
     Connections _connections;
+
+    /// Map of node UUIDs to node instances
     std::unordered_map<UUID, SharedNode> _nodes;
 };
 

@@ -6,7 +6,7 @@
 #include "flow/core/Env.hpp"
 #include "flow/core/Node.hpp"
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 void NodeFactory::UnregisterCategory(const Category& category)
 {

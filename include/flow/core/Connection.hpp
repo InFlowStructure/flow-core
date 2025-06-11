@@ -5,15 +5,15 @@
 
 #include "Core.hpp"
 #include "IndexableName.hpp"
-#include "Port.hpp"
 #include "UUID.hpp"
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <memory>
 #include <mutex>
 #include <string_view>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 using json = nlohmann::json;
 
@@ -41,7 +41,7 @@ class Connection
      * @param end_node_id The UUID of the node to which data will flow.
      * @param end_port_key The Port key of the input port.
      */
-    Connection(UUID& start_node_id, const IndexableName& start_port_key, UUID& end_node_id,
+    Connection(const UUID& start_node_id, const IndexableName& start_port_key, const UUID& end_node_id,
                const IndexableName& end_port_key);
 
     /**

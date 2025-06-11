@@ -8,7 +8,7 @@
 
 #include <filesystem>
 
-using namespace FLOW_NAMESPACE;
+using namespace flow;
 
 nlohmann::json module_json{
     {"Author", "Cisco Systems, Inc."},

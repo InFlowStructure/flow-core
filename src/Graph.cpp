@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <set>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 Graph::Graph(const std::string& name, std::shared_ptr<Env> env) : _name{name}, _env{std::move(env)} {}
 
