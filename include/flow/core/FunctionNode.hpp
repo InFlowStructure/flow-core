@@ -117,15 +117,18 @@ class FunctionNode : public Node
         const auto& inputs = GetInputPorts();
         (
             [&, this] {
-                const auto& key = input_names[Idx];
-                if (!inputs.contains(IndexableName{key}))
+                if constexpr (std::is_convertible_v<arg_t<Idx>, json>)
                 {
-                    return;
-                }
+                    const auto& key = input_names[Idx];
+                    if (!inputs.contains(IndexableName{key}))
+                    {
+                        return;
+                    }
 
-                if (auto x = GetInputData<arg_t<Idx>>(IndexableName{key}))
-                {
-                    inputs_json[key] = x->Get();
+                    if (auto x = GetInputData<arg_t<Idx>>(IndexableName{key}))
+                    {
+                        inputs_json[key] = x->Get();
+                    }
                 }
             }(),
             ...);
