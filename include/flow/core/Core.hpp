@@ -19,17 +19,9 @@
 #define FLOW_CORE_CALL
 #endif
 
-#define FLOW_NAMESPACE flow
-#define FLOW_NAMESPACE_START                                                                                           \
-    /** The core namespace. */                                                                                         \
-    namespace FLOW_NAMESPACE                                                                                           \
-    {
-#define FLOW_SUBNAMESPACE_START(n)                                                                                     \
-    namespace FLOW_NAMESPACE                                                                                           \
-    {                                                                                                                  \
-    namespace n                                                                                                        \
-    {
+// clang-format off
+#define FLOW_NAMESPACE_BEGIN namespace flow {
+#define FLOW_SUBNAMESPACE_START(nested) namespace flow { namespace nested {
 #define FLOW_NAMESPACE_END }
-#define FLOW_SUBNAMESPACE_END                                                                                          \
-    }                                                                                                                  \
-    }
+#define FLOW_SUBNAMESPACE_END } }
+//clang-format on

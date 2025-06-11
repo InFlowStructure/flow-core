@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <string_view>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 /**
  * @brief Unique hashable integer representation of string.
@@ -104,7 +104,7 @@ inline constexpr const IndexableName IndexableName::None{"None"};
 FLOW_NAMESPACE_END
 
 template<>
-struct std::hash<FLOW_NAMESPACE::IndexableName>
+struct std::hash<flow::IndexableName>
 {
-    std::size_t operator()(const FLOW_NAMESPACE::IndexableName& name) const { return std::size_t(name); }
+    std::size_t operator()(const flow::IndexableName& name) const { return std::size_t(name); }
 };

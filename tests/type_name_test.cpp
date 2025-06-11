@@ -2,7 +2,7 @@
 
 #include "TypeName.hpp"
 
-using FLOW_NAMESPACE::TypeName;
+using flow::TypeName;
 
 TEST(TypeNameTest, LanguageTypes)
 {

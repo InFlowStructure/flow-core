@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 class Env;
 

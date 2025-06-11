@@ -5,7 +5,7 @@
 
 #include <nlohmann/json.hpp>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 Connection::Connection(UUID& start_node_id, const IndexableName& start_port_key, UUID& end_node_id,
                        const IndexableName& end_port_key)

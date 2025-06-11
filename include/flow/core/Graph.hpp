@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 /**
  * @brief The core of the engine, holds nodes and their connections.

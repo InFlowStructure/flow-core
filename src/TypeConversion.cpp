@@ -5,7 +5,7 @@
 
 #include <any>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 SharedNodeData TypeRegistry::Convert(const SharedNodeData& data, std::string_view to_type) const
 {

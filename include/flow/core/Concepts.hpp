@@ -10,7 +10,7 @@
 #include <string_view>
 #include <type_traits>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 class Node;
 

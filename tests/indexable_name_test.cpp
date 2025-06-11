@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-using FLOW_NAMESPACE::IndexableName;
+using flow::IndexableName;
 
 TEST(IndexableNameTest, Construction)
 {

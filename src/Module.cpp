@@ -15,7 +15,7 @@
 #include <dlfcn.h>
 #endif
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 const std::string Module::FileExtension = "flowmod";
 

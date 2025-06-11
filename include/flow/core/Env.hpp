@@ -19,7 +19,7 @@
 using json        = nlohmann::json;
 using thread_pool = BS::thread_pool<>;
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 class Node;
 class NodeFactory;

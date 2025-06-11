@@ -6,7 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 /**
  * @brief Structure that reveals the types of the return value and arguments of a function at compile-time.

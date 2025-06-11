@@ -18,7 +18,7 @@
 #include <unordered_map>
 #include <vector>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 class Env;
 

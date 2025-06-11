@@ -4,7 +4,7 @@
 #include "flow/core/Node.hpp"
 #include "flow/core/NodeFactory.hpp"
 
-using namespace FLOW_NAMESPACE;
+using namespace flow;
 
 namespace
 {

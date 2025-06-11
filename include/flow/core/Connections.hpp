@@ -10,7 +10,7 @@
 #include <string_view>
 #include <unordered_map>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 /**
  * @brief Container for connections.

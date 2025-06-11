@@ -13,7 +13,7 @@
 #include <mutex>
 #include <string_view>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 using json = nlohmann::json;
 

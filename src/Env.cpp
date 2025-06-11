@@ -11,7 +11,7 @@
 
 #include <chrono>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 Env::Env(std::shared_ptr<NodeFactory> factory) : _factory{std::move(factory)}, _pool{std::make_unique<thread_pool>(10)}
 {

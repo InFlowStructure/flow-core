@@ -13,7 +13,7 @@
 #include <span>
 #include <type_traits>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 using json = nlohmann::json;
 

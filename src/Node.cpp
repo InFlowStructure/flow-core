@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 Node::Node(const UUID& uuid, std::string_view class_name, std::string_view name, std::shared_ptr<Env> env)
     : _id{uuid}, _class_name{class_name}, _name{name}, _env{std::move(env)}

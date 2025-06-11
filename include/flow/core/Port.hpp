@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <string_view>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 using json = nlohmann::json;
 
@@ -130,18 +130,15 @@ using SharedPort = std::shared_ptr<Port>;
 FLOW_NAMESPACE_END
 
 template<>
-struct std::less<FLOW_NAMESPACE::Port>
+struct std::less<flow::Port>
 {
-    std::uint64_t operator()(const FLOW_NAMESPACE::Port& lhs, const FLOW_NAMESPACE::Port& rhs) const
-    {
-        return lhs.Index() < rhs.Index();
-    }
+    std::uint64_t operator()(const flow::Port& lhs, const flow::Port& rhs) const { return lhs.Index() < rhs.Index(); }
 };
 
 template<>
-struct std::less<FLOW_NAMESPACE::SharedPort>
+struct std::less<flow::SharedPort>
 {
-    std::uint64_t operator()(const FLOW_NAMESPACE::SharedPort& lhs, const FLOW_NAMESPACE::SharedPort& rhs) const
+    std::uint64_t operator()(const flow::SharedPort& lhs, const flow::SharedPort& rhs) const
     {
         return lhs->Index() < rhs->Index();
     }

@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <string>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 /**
  * @brief Universally Unique IDentifier class
@@ -63,13 +63,13 @@ FLOW_NAMESPACE_END
 namespace std
 {
 template<>
-struct hash<FLOW_NAMESPACE::UUID>
+struct hash<flow::UUID>
 {
-    std::size_t operator()(const FLOW_NAMESPACE::UUID& id) const { return id.hash(); }
+    std::size_t operator()(const flow::UUID& id) const { return id.hash(); }
 };
 
 template<>
-inline void swap<FLOW_NAMESPACE::UUID>(FLOW_NAMESPACE::UUID& lhs, FLOW_NAMESPACE::UUID& rhs) noexcept
+inline void swap<flow::UUID>(flow::UUID& lhs, flow::UUID& rhs) noexcept
 {
     lhs.swap(rhs);
 }

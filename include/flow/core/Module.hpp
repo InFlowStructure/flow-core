@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-FLOW_NAMESPACE_START
+FLOW_NAMESPACE_BEGIN
 
 using json = nlohmann::json;
 
