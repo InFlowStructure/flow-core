@@ -35,8 +35,17 @@ class UUID
     UUID& operator=(const UUID&) = default;
     UUID& operator=(UUID&&)      = default;
 
+    /**
+     * @brief Convert UUID to string representation.
+     * @returns String representation of the UUID in standard format.
+     */
     operator std::string() const;
 
+    /**
+     * @brief Three-way comparison operator.
+     * @param other UUID to compare against.
+     * @returns Strong ordering based on internal byte representation.
+     */
     constexpr auto operator<=>(const UUID& other) const = default;
 
     /**

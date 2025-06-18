@@ -31,7 +31,15 @@ using SharedConnection = std::shared_ptr<class Connection>;
 class Connection
 {
   public:
-    Connection()  = delete;
+    /**
+     * @brief Deleted default constructor.
+     * @note Connections must be constructed with valid node and port information.
+     */
+    Connection() = delete;
+
+    /**
+     * @brief Default destructor.
+     */
     ~Connection() = default;
 
     /**
