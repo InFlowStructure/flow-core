@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Core.hpp"
+#include "Event.hpp"
 #include "IndexableName.hpp"
 #include "NodeData.hpp"
 
