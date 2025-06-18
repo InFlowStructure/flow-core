@@ -194,7 +194,18 @@ class Graph
         return node && _nodes.contains(node->ID());
     }
 
+    /**
+     * @brief Convert graph state to JSON.
+     * @param j JSON object to store state in.
+     * @param g Graph to serialize.
+     */
     friend void to_json(json& j, const Graph& g);
+
+    /**
+     * @brief Restore graph state from JSON.
+     * @param j JSON object containing serialized state.
+     * @param g Graph to restore state into.
+     */
     friend void from_json(const json& j, Graph& g);
 
   public:

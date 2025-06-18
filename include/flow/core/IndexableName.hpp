@@ -95,9 +95,23 @@ class IndexableName
     constexpr IndexableName& operator=(const IndexableName&) = default;
     constexpr IndexableName& operator=(IndexableName&&)      = default;
 
+    /**
+     * @brief Three-way comparison operator.
+     * @param other IndexableName to compare against.
+     * @returns Strong ordering based on hash value.
+     */
     constexpr auto operator<=>(const IndexableName& other) const { return _value <=> other._value; };
 
+    /**
+     * @brief Convert to size_t hash value.
+     * @returns The hash value of this IndexableName.
+     */
     constexpr operator std::size_t() const { return _value; }
+
+    /**
+     * @brief Convert to string view.
+     * @returns String view of the original name.
+     */
     constexpr operator std::string_view() const { return _name; }
 
     /// Get the hash value

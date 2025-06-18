@@ -76,17 +76,13 @@ class TypeRegistry
     void RegisterUnidirectionalConversion(const ConversionFunc& converter = Convert<From, To>);
 
     /**
-     * @brief Register conversions in both directions between two types.
+     * @brief Register conversions between two types with custom converters.
      *
-     * @details Registers both T->U and U->T conversions. For same-type conversions,
-     *          automatically handles reference and const variations through
-     *          RegisterUnidirectionalConversion.
+     * @tparam T First type to convert between.
+     * @tparam U Second type to convert between.
      *
-     * @tparam T First type in the conversion pair
-     * @tparam U Second type in the conversion pair
-     *
-     * @param from_to_converter Conversion function from T to U
-     * @param to_from_converter Conversion function from U to T
+     * @param from_to_converter Custom conversion function from T to U.
+     * @param to_from_converter Custom conversion function from U to T.
      */
     template<typename T, typename U>
     void RegisterBidirectionalConversion(const ConversionFunc& from_to_converter = Convert<T, U>,
