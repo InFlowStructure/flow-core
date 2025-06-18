@@ -64,10 +64,11 @@ graph->Run();
 class CustomNode : public flow::Node
 {
   public:
-    // Inherit the Node constructor to be compliant with the Factory
-    using flow::Node::Node;
+    CustomNode(const UUID& uuid, std::string_view class_name, std::string_view name, std::shared_ptr<Env> env)
+    {
+        // Add inputs and outputs
+    }
 
-    // Virtual destructor for polymorphism
     virtual ~CustomNode() = default;
 
     void Compute() override
@@ -80,7 +81,7 @@ class CustomNode : public flow::Node
 ### 2. Register Node
 
 ```cpp
-factory->RegisterNodeClass<CustomNode>("CustomCategory", "Custom Node");
+factory->RegisterNodeClass<CustomNode>("Custom Category", "Custom Node");
 ```
 
 ## Best Practices
