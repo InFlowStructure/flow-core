@@ -43,7 +43,10 @@ void Port::SetData(SharedNodeData data, bool output)
         _data->FromPointer(data->AsPointer());
     }
 
-    OnSetData(_key, _data, output);
+    if (OnSetData)
+    {
+        OnSetData(_key, _data, output);
+    }
 }
 
 void Port::SetCaption(std::string new_caption) { _caption = std::move(new_caption); }
