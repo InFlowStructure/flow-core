@@ -65,6 +65,7 @@ class CustomNode : public flow::Node
 {
   public:
     CustomNode(const UUID& uuid, std::string_view class_name, std::string_view name, std::shared_ptr<Env> env)
+        : Node(uuid, class_name, name, std::move(env))
     {
         // Add inputs and outputs
     }
