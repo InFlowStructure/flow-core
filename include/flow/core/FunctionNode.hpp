@@ -9,6 +9,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <vector>
+
 FLOW_NAMESPACE_BEGIN
 
 /**
@@ -73,19 +75,33 @@ class FunctionNode : public Node
 
   private:
     template<int... Idx>
-    void ParseArguments(std::integer_sequence<int, Idx...>)
+    void ParseArguments(std::integer_sequence<int, Idx...>, std::vector<std::string> arg_names)
     {
+        if (!arg_names.empty())
+        {
+            if (arg_names.size() != sizeof...(Idx))
+            {
+                throw std::invalid_argument("list of argument names must match the number of arguments");
+            }
+
+            std::copy(arg_names.begin(), arg_names.end(), _arg_names.begin());
+        }
+        else
+        {
+            ((void)(_arg_names[Idx] = 'a' + Idx), ...);
+        }
+
         (
             [&, this] {
+                auto& arg_name = _arg_names[Idx];
                 if constexpr (std::is_lvalue_reference_v<arg_t<Idx>> &&
                               !std::is_const_v<std::remove_reference_t<arg_t<Idx>>>)
                 {
-                    AddOutput<arg_t<Idx>>({input_names[Idx] = 'a' + Idx}, "",
-                                          MakeRefNodeData<arg_t<Idx>>(std::get<Idx>(_arguments)));
+                    AddOutput<arg_t<Idx>>({arg_name}, "", MakeRefNodeData<arg_t<Idx>>(std::get<Idx>(_arguments)));
                 }
                 else
                 {
-                    AddInput<arg_t<Idx>>({input_names[Idx] = 'a' + Idx}, "");
+                    AddInput<arg_t<Idx>>({arg_name}, "");
                 }
             }(),
             ...);
@@ -99,12 +115,12 @@ class FunctionNode : public Node
                           !std::is_const_v<std::remove_reference_t<arg_t<Idx>>>)
             {
                 return GetEnv()->GetFactory()->template Convert<arg_t<Idx>>(
-                    GetOutputData(IndexableName{input_names[Idx]}));
+                    GetOutputData(IndexableName{_arg_names[Idx]}));
             }
             else
             {
                 return GetEnv()->GetFactory()->template Convert<arg_t<Idx>>(
-                    GetInputData(IndexableName{input_names[Idx]}));
+                    GetInputData(IndexableName{_arg_names[Idx]}));
             }
         }()...);
     }
@@ -117,9 +133,14 @@ class FunctionNode : public Node
         const auto& inputs = GetInputPorts();
         (
             [&, this] {
-                if constexpr (std::is_convertible_v<arg_t<Idx>, json>)
+                if constexpr (!std::is_convertible_v<arg_t<Idx>, json>)
                 {
-                    const auto& key = input_names[Idx];
+                    return;
+                }
+                else
+                {
+
+                    const auto& key = _arg_names[Idx];
                     if (!inputs.contains(IndexableName{key}))
                     {
                         return;
@@ -141,7 +162,7 @@ class FunctionNode : public Node
     {
         (
             [&, this] {
-                const auto& key = input_names[Idx];
+                const auto& key = _arg_names[Idx];
                 if (!j.contains(key))
                 {
                     return;
@@ -156,10 +177,11 @@ class FunctionNode : public Node
     }
 
   public:
-    explicit FunctionNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env)
+    explicit FunctionNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env,
+                          std::vector<std::string> arg_names = {})
         : Node(uuid, TypeName_v<FunctionNode<F, Func>>, name, std::move(env)), _func{Func}
     {
-        ParseArguments(std::make_integer_sequence<int, std::tuple_size_v<arg_ts>>{});
+        ParseArguments(std::make_integer_sequence<int, std::tuple_size_v<arg_ts>>{}, arg_names);
 
         if (!std::is_void_v<output_t>)
         {
@@ -209,14 +231,25 @@ class FunctionNode : public Node
 
   private:
     std::add_pointer_t<std::remove_pointer_t<F>> _func;
-    static inline std::array<std::string, std::tuple_size_v<arg_ts>> input_names{""};
+    static inline std::array<std::string, std::tuple_size_v<arg_ts>> _arg_names{""};
     decayed_tuple_t<arg_ts> _arguments;
 };
 
-template<concepts::Function F, F Func>
-void NodeFactory::RegisterFunction(const std::string& category, const std::string& name)
+template<concepts::Function F, F Func, typename... ArgNames>
+void NodeFactory::RegisterFunction(const std::string& category, const std::string& name,
+                                   std::vector<std::string> arg_names)
 {
-    return RegisterNodeClass<FunctionNode<F, Func>>(category, name);
+    constexpr std::string_view class_name = TypeName_v<FunctionNode<F, Func>>;
+
+    _constructor_map.emplace(
+        class_name,
+        [names = std::move(arg_names)](const std::string& uuid_str, const std::string& name, std::shared_ptr<Env> env) {
+            return new FunctionNode<F, Func>(uuid_str, name, std::move(env), std::move(names));
+        });
+    _category_map.emplace(category, class_name);
+    _friendly_names.emplace(class_name, name);
+
+    OnNodeClassRegistered.Broadcast(std::string_view{class_name});
 }
 
 FLOW_NAMESPACE_END
