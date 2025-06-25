@@ -55,7 +55,8 @@ class NodeFactory
     void UnregisterNodeClass(const std::string& category);
 
     template<concepts::Function F, F Func, typename... ArgNames>
-    void RegisterFunction(const std::string& category, const std::string& name, std::vector<std::string> arg_names = {});
+    void RegisterFunction(const std::string& category, const std::string& name,
+                          std::vector<std::string> arg_names = {});
 
     /**
      * @brief Removes all nodes added by the given category object.
