@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Core.hpp"
+#include "Event.hpp"
 #include "IndexableName.hpp"
 #include "NodeData.hpp"
 
@@ -113,6 +114,14 @@ class Port
      * @param new_caption The new caption to set.
      */
     void SetCaption(std::string new_caption);
+
+    /**
+     * @brief Event triggered when port data is modified.
+     * @param key The port's unique key.
+     * @param data The new data set on the port.
+     * @param output Flag indicating if this change should propagate.
+     */
+    Event<const IndexableName&, const SharedNodeData&, bool> OnSetData;
 
   private:
     std::shared_ptr<INodeData> _data;
