@@ -1,3 +1,6 @@
+# Copyright (c) 2024, Cisco Systems, Inc.
+# All rights reserved.
+
 cmake_minimum_required(VERSION 3.10)
 
 project(flow-core VERSION 1.1.1 LANGUAGES CXX)

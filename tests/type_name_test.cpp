@@ -1,6 +1,9 @@
-#include <gtest/gtest.h>
+// Copyright (c) 2024, Cisco Systems, Inc.
+// All rights reserved.
 
 #include "TypeName.hpp"
+
+#include <gtest/gtest.h>
 
 using flow::TypeName;
 

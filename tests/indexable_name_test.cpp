@@ -1,3 +1,6 @@
+// Copyright (c) 2024, Cisco Systems, Inc.
+// All rights reserved.
+
 #include "IndexableName.hpp"
 
 #include <gtest/gtest.h>
