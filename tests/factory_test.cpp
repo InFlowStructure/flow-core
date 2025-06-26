@@ -1,3 +1,6 @@
+// Copyright (c) 2024, Cisco Systems, Inc.
+// All rights reserved.
+
 #include "flow/core/Env.hpp"
 #include "flow/core/Node.hpp"
 #include "flow/core/NodeFactory.hpp"
