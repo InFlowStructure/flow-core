@@ -27,6 +27,13 @@ include(cmake/CPM.cmake)
 CPMAddPackage("gh:nlohmann/json@3.11.3")
 CPMAddPackage("gh:bshoshany/thread-pool@5.0.0")
 
+set(BUILD_TOOLS OFF CACHE BOOL "")
+set(BUILD_REGRESS OFF CACHE BOOL "")
+set(BUILD_OSSFUZZ OFF CACHE BOOL "")
+set(BUILD_EXAMPLES OFF CACHE BOOL "")
+set(BUILD_DOC OFF CACHE BOOL "")
+CPMAddPackage("gh:nih-at/libzip@1.11.4")
+
 # -----------------------------------------------------------------------------
 # Library
 # -----------------------------------------------------------------------------
@@ -68,21 +75,23 @@ if(APPLE)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     "-framework CoreFoundation"
     pthread
-    nlohmann_json::nlohmann_json
   )
 elseif(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
   target_compile_options(${PROJECT_NAME} PRIVATE /W4 /MP)
-  target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 else()
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     dl
     pthread
     uuid
-    nlohmann_json::nlohmann_json
   )
 endif()
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  nlohmann_json::nlohmann_json
+  zip
+)
 
 # -----------------------------------------------------------------------------
 # Install

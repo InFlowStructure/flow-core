@@ -5,7 +5,7 @@
 
 #include "Core.hpp"
 
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 #include <filesystem>
 #include <string>
@@ -17,9 +17,19 @@ using json = nlohmann::json;
 
 class NodeFactory;
 
+struct ModuleMetaData
+{
+    std::string Name;
+    std::string Version;
+    std::string Author;
+    std::string Description;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ModuleMetaData, Name, Version, Author, Description);
+
 class Module
 {
-    struct HandleDelete
+    struct HandleUnloader
     {
         void operator()(void*);
     };
@@ -49,32 +59,21 @@ class Module
 
     bool IsLoaded() const noexcept { return _handle != nullptr; }
 
-    const std::string& GetName() const noexcept { return _name; }
-
-    const std::string& GetVersion() const noexcept { return _version; }
-
-    const std::string& GetAuthor() const noexcept { return _author; }
-
-    const std::string& GetDescription() const noexcept { return _description; }
-
-    const std::vector<std::string>& GetDependencies() const noexcept { return _dependencies; }
+    const ModuleMetaData& GetMetaData() const noexcept { return _metadata; }
 
   private:
-    void Validate(const json& module_json);
+    void ValidateMetaData(const json& module_json);
 
   public:
     static const std::string FileExtension;
     static const std::string BinaryExtension;
 
   private:
-    std::string _name;
-    std::string _version;
-    std::string _author;
-    std::string _description;
+    ModuleMetaData _metadata;
     std::vector<std::string> _dependencies;
 
     std::shared_ptr<NodeFactory> _factory;
-    std::unique_ptr<void, HandleDelete> _handle;
+    std::unique_ptr<void, HandleUnloader> _handle;
 };
 
 FLOW_NAMESPACE_END

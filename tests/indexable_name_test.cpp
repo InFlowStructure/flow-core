@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "IndexableName.hpp"
+
+#include <gtest/gtest.h>
 
 #include <random>
 #include <set>
