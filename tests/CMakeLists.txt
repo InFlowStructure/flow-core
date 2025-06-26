@@ -21,13 +21,6 @@ if (NOT GTest_FOUND)
 endif()
 
 #=============================================================================#
-# Add Test Module
-#=============================================================================#
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests/bin)
-add_subdirectory(test_module)
-
-#=============================================================================#
 # Test Executable
 #=============================================================================#
 
@@ -66,6 +59,14 @@ if(MSVC)
         $<TARGET_FILE_DIR:flow_core_tests>
   )
 endif()
+
+add_custom_command(
+    TARGET flow_core_tests
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/test_module.flowmod"
+            "$<TARGET_FILE_DIR:flow_core_tests>/test_module.flowmod"
+)
 
 include(GoogleTest)
 gtest_discover_tests(flow_core_tests)

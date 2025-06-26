@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
-
 #include "flow/core/Env.hpp"
 #include "flow/core/FunctionNode.hpp"
 #include "flow/core/Node.hpp"
 #include "flow/core/NodeData.hpp"
 #include "flow/core/NodeFactory.hpp"
 
+#include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
 using namespace flow;

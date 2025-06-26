@@ -1,32 +1,36 @@
-#include <gtest/gtest.h>
-
 #include "flow/core/Env.hpp"
 #include "flow/core/Module.hpp"
 #include "flow/core/NodeFactory.hpp"
 
+#include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
 
 using namespace flow;
 
-nlohmann::json module_json{
-    {"Author", "Cisco Systems, Inc."},
-    {"Description", "A test module."},
-    {"Name", "test_module"},
-    {"Version", "0.0.0"},
-};
-
-const std::filesystem::path module_path = std::filesystem::current_path();
+const std::filesystem::path module_path = std::filesystem::current_path() / "test_module.flowmod";
 
 auto factory = std::make_shared<NodeFactory>();
 auto env     = Env::Create(factory);
 
-TEST(ModuleTest, Load) { ASSERT_NO_THROW(Module(module_json, module_path, factory)); }
+TEST(ModuleTest, Load) { ASSERT_NO_THROW(Module(module_path, factory)); }
+
+TEST(ModuleTest, ValidateMetaData)
+{
+    Module module(module_path, factory);
+    ASSERT_TRUE(module.IsLoaded());
+
+    const auto& meta_data = module.GetMetaData();
+    ASSERT_EQ(meta_data.Name, "test_module");
+    ASSERT_EQ(meta_data.Version, "0.0.0");
+    ASSERT_EQ(meta_data.Author, "Cisco Systems, Inc.");
+    ASSERT_EQ(meta_data.Description, "A test module.");
+}
 
 TEST(ModuleTest, RunModuleNodes)
 {
-    Module module(module_json, module_path, factory);
+    Module module(module_path, factory);
     ASSERT_TRUE(module.IsLoaded());
 
     SharedNode node;
@@ -39,7 +43,7 @@ TEST(ModuleTest, RunModuleNodes)
 
 TEST(ModuleTest, Unload)
 {
-    Module module(module_json, module_path, factory);
+    Module module(module_path, factory);
     ASSERT_TRUE(module.IsLoaded());
     ASSERT_NO_THROW(module.Unload());
     ASSERT_FALSE(module.IsLoaded());
@@ -47,7 +51,7 @@ TEST(ModuleTest, Unload)
 
 TEST(ModuleTest, LoadUnloadLoad)
 {
-    Module module(module_json, module_path, factory);
+    Module module(module_path, factory);
     ASSERT_TRUE(module.IsLoaded());
     ASSERT_NO_THROW(ASSERT_FALSE(module.Load(module_path)));
     ASSERT_TRUE(module.IsLoaded());
