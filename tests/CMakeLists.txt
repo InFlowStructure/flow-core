@@ -21,10 +21,9 @@ if (NOT GTest_FOUND)
 endif()
 
 #=============================================================================#
-# Add Test Module
+# Test Module
 #=============================================================================#
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests/bin)
 add_subdirectory(test_module)
 
 #=============================================================================#
