@@ -6,6 +6,8 @@
 #include "flow/core/NodeData.hpp"
 #include "flow/core/NodeFactory.hpp"
 
+#include <nlohmann/json.hpp>
+
 using namespace flow;
 
 namespace test
