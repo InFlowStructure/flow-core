@@ -31,7 +31,7 @@ else()
   message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64)$")
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
   set(MODULE_BINARY_DIR "${MODULE_BINARY_DIR}/x86_64")
 elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(arm64|aarch64)$")
   set(MODULE_BINARY_DIR "${MODULE_BINARY_DIR}/arm64")
