@@ -16,12 +16,15 @@
 #ifdef FLOW_WINDOWS
 #include <windows.h>
 #else
+#include "Module.hpp"
 #include <dlfcn.h>
 #endif
 
 FLOW_NAMESPACE_BEGIN
 
 using namespace zipper;
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ModuleMetaData, Name, Version, Author, Description);
 
 const std::string Module::FileExtension = "fmod";
 
@@ -60,8 +63,22 @@ std::filesystem::path GetModuleBinaryPath(const std::filesystem::path& dir)
     return dir / platform / architecture / dir.stem().replace_extension(library_extension);
 }
 
+/**
+ * @brief Get the Module Meta Data Path object.
+ *
+ * @param dir The directory of the module files.
+ * @returns The path to the module metadata file.
+ */
 std::filesystem::path GetModuleMetaDataPath(const std::filesystem::path& dir) { return dir / "module.json"; }
 
+/**
+ * @brief Get the temporary module path.
+ *
+ * This function creates a directory for temporary modules if it does not exist.
+ * The path is platform-specific and uses the system's temporary directory.
+ *
+ * @returns The path to the temporary module directory.
+ */
 std::filesystem::path GetTempModulePath()
 {
     auto temp_path = std::filesystem::temp_directory_path() / "flow_modules";
@@ -93,6 +110,8 @@ auto LoadModuleLibrary(const std::string& name)
     return dlopen(name.c_str(), RTLD_LAZY);
 #endif
 }
+
+Module::Module(std::shared_ptr<NodeFactory> factory) : _factory(std::move(factory)) {}
 
 Module::Module(const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory) : _factory(std::move(factory))
 {
@@ -127,7 +146,7 @@ bool Module::Load(const std::filesystem::path& path)
     unzipper.extractAll(GetTempModulePath().string(), Unzipper::OverwriteMode::Overwrite);
     unzipper.close();
 
-    auto module_metadata_path = GetModuleMetaDataPath(GetTempModulePath() / path.stem());
+    const auto module_metadata_path = GetModuleMetaDataPath(GetTempModulePath() / path.stem());
     std::ifstream metadata_fs(module_metadata_path);
     json module_j = json::parse(metadata_fs);
     ValidateMetaData(module_j);
@@ -146,21 +165,11 @@ bool Module::Load(const std::filesystem::path& path)
             std::format("Failed to load module binary. (binary_path={})", module_binary_path.string()));
     }
 
-#ifdef FLOW_WINDOWS
-    auto register_func = GetProcAddress(handle, NodeFactory::RegisterModuleFuncName);
-#else
-    auto register_func = dlsym(handle, NodeFactory::RegisterModuleFuncName);
-#endif
-    if (auto RegisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(register_func))
-    {
-        RegisterModule_func(_factory);
-        _handle.reset(std::bit_cast<void*>(handle));
-        return true;
-    }
+    _handle.reset(std::bit_cast<void*>(handle));
 
-    HandleUnloader{}(handle);
+    RegisterModuleNodes(_factory);
 
-    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (file={})", path.string()));
+    return true;
 }
 
 bool Module::Unload()
@@ -170,18 +179,60 @@ bool Module::Unload()
         return false;
     }
 
+    UnregisterModuleNodes(_factory);
+
+    _handle.reset();
+    return true;
+}
+
+void Module::RegisterModuleNodes(const std::shared_ptr<NodeFactory>& factory)
+{
+    if (!_handle)
+    {
+        throw std::runtime_error("Module is not loaded, cannot register nodes.");
+    }
+
+    if (!factory)
+    {
+        throw std::invalid_argument("NodeFactory is null, cannot register nodes.");
+    }
+
+#ifdef FLOW_WINDOWS
+    auto register_func = GetProcAddress(std::bit_cast<HINSTANCE>(_handle.get()), NodeFactory::RegisterModuleFuncName);
+#else
+    auto register_func = dlsym(_handle.get(), NodeFactory::RegisterModuleFuncName);
+#endif
+    if (auto RegisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(register_func)) [[likely]]
+    {
+        return RegisterModule_func(factory);
+    }
+
+    throw std::runtime_error("Failed to load symbols for RegisterModule.");
+}
+
+void Module::UnregisterModuleNodes(const std::shared_ptr<NodeFactory>& factory)
+{
+    if (!_handle)
+    {
+        throw std::runtime_error("Module is not loaded, cannot unregister nodes.");
+    }
+
+    if (!factory)
+    {
+        throw std::invalid_argument("NodeFactory is null, cannot unregister nodes.");
+    }
+
 #ifdef FLOW_WINDOWS
     auto unregister = GetProcAddress(std::bit_cast<HINSTANCE>(_handle.get()), NodeFactory::UnregisterModuleFuncName);
 #else
     auto unregister = dlsym(_handle.get(), NodeFactory::UnregisterModuleFuncName);
 #endif
-    if (auto UnregisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(unregister))
+    if (auto UnregisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(unregister)) [[likely]]
     {
-        UnregisterModule_func(_factory);
+        return UnregisterModule_func(factory);
     }
 
-    _handle.reset();
-    return true;
+    throw std::runtime_error("Failed to load symbols for UnregisterModule.");
 }
 
 void Module::ValidateMetaData(const json& mod_j)
