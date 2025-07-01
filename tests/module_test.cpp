@@ -63,7 +63,7 @@ TEST(ModuleTest, RegisterModuleNodes)
     Module module(module_path, factory);
     ASSERT_TRUE(module.IsLoaded());
 
-    ASSERT_NO_THROW(module.RegisterModuleNodes(factory));
+    ASSERT_NO_THROW(module.RegisterModuleNodes());
     ASSERT_NE(factory->CreateNode("TestNode", UUID{}, "test", env), nullptr);
 }
 
@@ -72,10 +72,10 @@ TEST(ModuleTest, UnregisterModuleNodes)
     Module module(module_path, factory);
     ASSERT_TRUE(module.IsLoaded());
 
-    module.RegisterModuleNodes(factory);
+    module.RegisterModuleNodes();
     ASSERT_NE(factory->CreateNode("TestNode", UUID{}, "test", env), nullptr);
 
-    ASSERT_NO_THROW(module.UnregisterModuleNodes(factory));
+    ASSERT_NO_THROW(module.UnregisterModuleNodes());
     ASSERT_EQ(factory->CreateNode("TestNode", UUID{}, "test", env), nullptr);
 }
 
@@ -84,7 +84,7 @@ TEST(ModuleTest, RunModuleNodes)
     Module module(module_path, factory);
     ASSERT_TRUE(module.IsLoaded());
 
-    module.RegisterModuleNodes(factory);
+    module.RegisterModuleNodes();
 
     SharedNode node;
     ASSERT_NO_THROW(node = factory->CreateNode("TestNode", UUID{}, "test", env));

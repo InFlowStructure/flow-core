@@ -185,6 +185,10 @@ bool Module::Unload()
     return true;
 }
 
+void Module::RegisterModuleNodes() { RegisterModuleNodes(_factory); }
+
+void Module::UnregisterModuleNodes() { UnregisterModuleNodes(_factory); }
+
 void Module::RegisterModuleNodes(const std::shared_ptr<NodeFactory>& factory)
 {
     if (!_handle)
