@@ -24,9 +24,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC flow-core)
 include(../../cmake/FlowModule.cmake)
 CreateFlowModule(${PROJECT_NAME})
 
-add_custom_command(TARGET ${PROJECT_NAME}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_CURRENT_BINARY_DIR}/test_module.fmod
-    $<TARGET_FILE_DIR:flow_core_tests>
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/test_module.fmod $<TARGET_FILE_DIR:flow_core_tests>
+  COMMENT "Copy ${CMAKE_CURRENT_BINARY_DIR}/test_module.fmod to $<TARGET_FILE_DIR:flow_core_tests>"
 )
