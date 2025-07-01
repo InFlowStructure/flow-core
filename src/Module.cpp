@@ -5,8 +5,8 @@
 
 #include "flow/core/NodeFactory.hpp"
 
+#include <Zipper/Unzipper.hpp>
 #include <nlohmann/json.hpp>
-#include <zip.h>
 
 #include <bit>
 #include <format>
@@ -21,7 +21,9 @@
 
 FLOW_NAMESPACE_BEGIN
 
-const std::string Module::FileExtension = "flowmod";
+using namespace zipper;
+
+const std::string Module::FileExtension = "fmod";
 
 #ifdef FLOW_WINDOWS
 constexpr const char* platform = "windows";
@@ -116,55 +118,14 @@ bool Module::Load(const std::filesystem::path& path)
         throw std::runtime_error(std::format("Path is not a file. (file={})", path.string()));
     }
 
-    zip_t* archive = zip_open(path.string().c_str(), ZIP_RDONLY, nullptr);
-    if (!archive)
+    Unzipper unzipper(path.string());
+    if (!unzipper.isOpened())
     {
         throw std::runtime_error(std::format("Failed to open module archive. (file={})", path.string()));
     }
 
-    const zip_int64_t num_entries = zip_get_num_entries(archive, 0);
-    for (zip_int64_t i = 0; i < num_entries; ++i)
-    {
-        zip_stat_t file_info;
-        zip_stat_init(&file_info);
-
-        if (zip_stat_index(archive, i, 0, &file_info) != 0)
-        {
-            zip_close(archive);
-            throw std::runtime_error(
-                std::format("Failed to get file info from module archive. (file={})", path.string()));
-        }
-
-        auto file_path = GetTempModulePath() / file_info.name;
-        auto file      = zip_fopen(archive, file_info.name, 0);
-        if (!file)
-        {
-            zip_close(archive);
-            throw std::runtime_error(
-                std::format("Failed to open file in module archive. (file={})", file_path.string()));
-        }
-
-        std::vector<char> buffer(file_info.size);
-        zip_fread(file, buffer.data(), file_info.size);
-        zip_fclose(file);
-
-        std::filesystem::create_directories(file_path.parent_path());
-        if (std::filesystem::is_directory(file_path))
-        {
-            continue;
-        }
-
-        std::ofstream out_file(file_path, std::ios::binary);
-        if (!out_file)
-        {
-            zip_close(archive);
-            throw std::runtime_error(
-                std::format("Failed to create file from module archive. (file={})", file_path.string()));
-        }
-
-        out_file.write(buffer.data(), buffer.size());
-        out_file.close();
-    }
+    unzipper.extractAll(GetTempModulePath().string(), Unzipper::OverwriteMode::Overwrite);
+    unzipper.close();
 
     auto module_metadata_path = GetModuleMetaDataPath(GetTempModulePath() / path.stem());
     std::ifstream metadata_fs(module_metadata_path);

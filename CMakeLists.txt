@@ -29,13 +29,7 @@ include(cmake/CPM.cmake)
 
 CPMAddPackage("gh:nlohmann/json@3.11.3")
 CPMAddPackage("gh:bshoshany/thread-pool@5.0.0")
-
-set(BUILD_TOOLS OFF CACHE BOOL "")
-set(BUILD_REGRESS OFF CACHE BOOL "")
-set(BUILD_OSSFUZZ OFF CACHE BOOL "")
-set(BUILD_EXAMPLES OFF CACHE BOOL "")
-set(BUILD_DOC OFF CACHE BOOL "")
-CPMAddPackage("gh:nih-at/libzip@1.11.4")
+CPMAddPackage("gh:Lecrapouille/zipper@3.0.0")
 
 # -----------------------------------------------------------------------------
 # Library
@@ -93,7 +87,10 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   nlohmann_json::nlohmann_json
-  zip
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+  zipper
 )
 
 # -----------------------------------------------------------------------------

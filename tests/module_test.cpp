@@ -12,7 +12,7 @@
 
 using namespace flow;
 
-const std::filesystem::path module_path = std::filesystem::current_path() / "test_module.flowmod";
+const std::filesystem::path module_path = std::filesystem::current_path() / "test_module.fmod";
 
 auto factory = std::make_shared<NodeFactory>();
 auto env     = Env::Create(factory);

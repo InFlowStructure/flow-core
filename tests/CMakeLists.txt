@@ -4,24 +4,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #=============================================================================#
-# Fetch testing dependencies
+# Dependencies
 #=============================================================================#
 
-find_package(GTest CONFIG QUIET)
-if (NOT GTest_FOUND)
-  include(FetchContent)
-  FetchContent_Declare(
-    googletest OVERRIDE_FIND_PACKAGE
-    URL https://github.com/google/googletest/releases/download/v1.15.2/googletest-1.15.2.tar.gz
-    GIT_TAG v1.15.2
-  )
-
-  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(googletest)
-endif()
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+CPMAddPackage("gh:google/googletest@1.15.2")
 
 #=============================================================================#
-# Test Module
+# Add Test Module
 #=============================================================================#
 
 add_subdirectory(test_module)
@@ -30,8 +20,9 @@ add_subdirectory(test_module)
 # Test Executable
 #=============================================================================#
 
+set(TEST_EXE flow_core_tests)
 add_executable(
-  flow_core_tests
+  ${TEST_EXE}
 
   factory_test.cpp
   graph_test.cpp
@@ -43,18 +34,16 @@ add_executable(
 
 if(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-  target_compile_options(flow_core_tests PRIVATE /W4 /MP)
+  target_compile_options(${TEST_EXE} PRIVATE /W4 /MP)
 endif()
 
-target_link_libraries(
-  flow_core_tests
-
+target_link_libraries(${TEST_EXE}
   flow-core
   GTest::gtest_main
 )
 
-target_include_directories(flow_core_tests PRIVATE
-  ../include/flow/core
+target_include_directories(${TEST_EXE} PRIVATE
+  ${CMAKE_SOURCE_DIR}/include/flow/core
   ${thread_pool_SOURCE_DIR}/include
 )
 
@@ -62,9 +51,9 @@ if(MSVC)
   add_custom_command(TARGET flow_core_tests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:${PROJECT_NAME}>
-        $<TARGET_FILE_DIR:flow_core_tests>
+        $<TARGET_FILE_DIR:${TEST_EXE}>
   )
 endif()
 
 include(GoogleTest)
-gtest_discover_tests(flow_core_tests)
+gtest_discover_tests(${TEST_EXE})
