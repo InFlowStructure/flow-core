@@ -76,6 +76,18 @@ class Module
     bool Unload();
 
     /**
+     * @brief Registers the module nodes with the factory.
+     * This function will call the `RegisterModule` function from the module binary.
+     */
+    void RegisterModuleNodes();
+
+    /**
+     * @brief Unregisters the module nodes from the factory.
+     * This function will call the `UnregisterModule` function from the module binary.
+     */
+    void UnregisterModuleNodes();
+
+    /**
      * @brief Registers the module nodes with the provided factory.
      * @param factory The factory to register nodes with.
      */
