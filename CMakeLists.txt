@@ -30,6 +30,11 @@ include(cmake/CPM.cmake)
 CPMAddPackage("gh:nlohmann/json@3.11.3")
 CPMAddPackage("gh:bshoshany/thread-pool@5.0.0")
 CPMAddPackage("gh:Lecrapouille/zipper@3.0.0")
+set_target_properties(zipper PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
 
 # -----------------------------------------------------------------------------
 # Library
