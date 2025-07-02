@@ -36,6 +36,13 @@ struct ModuleMetaData
     std::string Description;
 };
 
+/**
+ * @brief Class representing a flow module that can be loaded and unloaded.
+ *
+ * This class is responsible for managing the lifecycle of a flow module,
+ * including loading and unloading the module, registering and unregistering nodes,
+ * and validating module metadata.
+ */
 class Module
 {
     struct HandleUnloader
