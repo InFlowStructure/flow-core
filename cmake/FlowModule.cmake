@@ -1,7 +1,7 @@
 function(CreateFlowModule module_name)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
       set(MODULE_BINARY_DIR "linux")
-    elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin") # macOS uses Darwin as its kernel name
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
       set(MODULE_BINARY_DIR "macos")
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
       set(MODULE_BINARY_DIR "windows")
@@ -24,15 +24,23 @@ function(CreateFlowModule module_name)
       $<TARGET_FILE:${module_name}>
       $<TARGET_FILE_DIR:${module_name}>/${module_name}/${MODULE_BINARY_DIR}/${module_name}${CMAKE_SHARED_LIBRARY_SUFFIX}
     )
+
     add_custom_command(TARGET ${module_name} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy
       ${CMAKE_CURRENT_SOURCE_DIR}/module.json
       $<TARGET_FILE_DIR:${module_name}>/${module_name}/module.json
     )
+
     add_custom_command(TARGET ${module_name} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy
       ${CMAKE_CURRENT_SOURCE_DIR}/README.md
       $<TARGET_FILE_DIR:${module_name}>/${module_name}/README.md
+    )
+
+    add_custom_command(TARGET ${module_name} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+      ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
+      $<TARGET_FILE_DIR:${module_name}>/${module_name}/LICENSE
     )
 
     add_custom_command(TARGET ${module_name} POST_BUILD
