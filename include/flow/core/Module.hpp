@@ -128,11 +128,9 @@ class Module
     static const std::string FileExtension;
 
   private:
-    std::optional<ModuleMetaData> _metadata;
-    std::vector<std::string> _dependencies;
-
-    std::shared_ptr<NodeFactory> _factory;
     std::unique_ptr<void, HandleUnloader> _handle;
+    std::optional<ModuleMetaData> _metadata;
+    std::shared_ptr<NodeFactory> _factory;
 };
 
 FLOW_NAMESPACE_END
