@@ -20,7 +20,7 @@ FLOW_NAMESPACE_END
 /**
  * @brief Type traits for compile-time type information and validation
  */
-FLOW_SUBNAMESPACE_START(type_traits)
+FLOW_SUBNAMESPACE_BEGIN(type_traits)
 
 /**
  * @brief Check if type is specialization of template
@@ -44,7 +44,7 @@ FLOW_SUBNAMESPACE_END
 /**
  * @brief Concepts for constraining template parameters
  */
-FLOW_SUBNAMESPACE_START(concepts)
+FLOW_SUBNAMESPACE_BEGIN(concepts)
 
 /**
  * @brief Requires type to be arithmetic (integral or floating point)
