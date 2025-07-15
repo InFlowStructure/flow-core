@@ -54,8 +54,9 @@ class NodeFactory
     template<concepts::NodeType T>
     void UnregisterNodeClass(const std::string& category);
 
-    template<concepts::Function F, F Func>
-    void RegisterFunction(const std::string& category, const std::string& name = std::string{TypeName_v<F>});
+    template<concepts::Function F, F Func, typename... ArgNames>
+    void RegisterFunction(const std::string& category, const std::string& name,
+                          std::vector<std::string> arg_names = {});
 
     /**
      * @brief Removes all nodes added by the given category object.
@@ -276,7 +277,7 @@ class Category
 template<concepts::NodeType T>
 void NodeFactory::RegisterNodeClass(const std::string& category, const std::string& name)
 {
-    const std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
+    constexpr std::string_view class_name = TypeName_v<std::remove_cvref_t<T>>;
 
     _constructor_map.emplace(class_name, ConstructorHelper<std::remove_cvref_t<T>>);
     _category_map.emplace(category, class_name);
