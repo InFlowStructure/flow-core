@@ -1,7 +1,11 @@
+// Copyright (c) 2024, Cisco Systems, Inc.
+// All rights reserved.
+
 #include "flow/core/Module.hpp"
 
 #include "flow/core/NodeFactory.hpp"
 
+#include <Zipper/Unzipper.hpp>
 #include <nlohmann/json.hpp>
 
 #include <bit>
@@ -12,25 +16,133 @@
 #ifdef FLOW_WINDOWS
 #include <windows.h>
 #else
+#include "Module.hpp"
 #include <dlfcn.h>
 #endif
 
 FLOW_NAMESPACE_BEGIN
 
-const std::string Module::FileExtension = "flowmod";
+using namespace zipper;
+
+struct formatted_error : public std::runtime_error
+{
+    template<typename... Args>
+    formatted_error(const std::format_string<Args...> fmt, Args&&... args)
+        : runtime_error(std::format(fmt, std::forward<Args>(args)...))
+    {
+    }
+};
+
+struct runtime_error : public formatted_error
+{
+    using formatted_error::formatted_error;
+};
+
+struct invalid_argument : public formatted_error
+{
+    using formatted_error::formatted_error;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ModuleMetaData, Name, Version, Author, Description);
+
+const std::string Module::FileExtension = "fmod";
 
 #ifdef FLOW_WINDOWS
-const std::string Module::BinaryExtension = ".dll";
+constexpr const char* platform = "windows";
 #elif defined(FLOW_APPLE)
-const std::string Module::BinaryExtension = ".dylib";
+constexpr const char* platform = "macos";
 #else
-const std::string Module::BinaryExtension = ".so";
+constexpr const char* platform = "linux";
 #endif
 
-void Module::HandleDelete::operator()(void* handle)
+#ifdef FLOW_X86_64
+constexpr const char* architecture = "x86_64";
+#elif defined(FLOW_X86)
+constexpr const char* architecture = "x86";
+#elif defined(FLOW_ARM)
+constexpr const char* architecture = "arm64";
+#else
+#error "Unsupported architecture"
+#endif
+
+#ifdef FLOW_WINDOWS
+constexpr const char* library_extension = ".dll";
+#elif defined(FLOW_APPLE)
+constexpr const char* library_extension = ".dylib";
+#else
+constexpr const char* library_extension = ".so";
+#endif
+
+/**
+ * @brief Get the Module Binary Path object.
+ *
+ * @param dir The directory of the module files.
+ * @returns The path to the module binary.
+ */
+std::filesystem::path GetModuleBinaryPath(const std::filesystem::path& dir)
+{
+    return dir / platform / architecture / dir.stem().replace_extension(library_extension);
+}
+
+/**
+ * @brief Get the Module Meta Data Path object.
+ *
+ * @param dir The directory of the module files.
+ * @returns The path to the module metadata file.
+ */
+std::filesystem::path GetModuleMetaDataPath(const std::filesystem::path& dir) { return dir / "module.json"; }
+
+/**
+ * @brief Get the temporary module path.
+ *
+ * This function creates a directory for temporary modules if it does not exist.
+ * The path is platform-specific and uses the system's temporary directory.
+ *
+ * @returns The path to the temporary module directory.
+ */
+std::filesystem::path GetTempModulePath()
+{
+    auto temp_path = std::filesystem::temp_directory_path() / "flow_modules";
+    std::filesystem::create_directories(temp_path);
+    return temp_path;
+}
+
+void ModuleMetaData::Validate(const json& mod_j)
+{
+    if (!mod_j.contains("Name") || !mod_j["Name"].is_string())
+    {
+        throw std::invalid_argument("Module metadata is missing 'Name' field or it is not a string.");
+    }
+
+    if (!mod_j.contains("Version") || !mod_j["Version"].is_string())
+    {
+        throw std::invalid_argument("Module metadata is missing 'Version' field or it is not a string.");
+    }
+
+    std::regex semver_regex(R"(^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$)");
+    const std::string& version = mod_j["Version"].get_ref<const std::string&>();
+
+    if (!std::regex_match(version, semver_regex))
+    {
+        throw flow::invalid_argument("Module metadata 'Version' field is not a valid semantic version. (version={})",
+                                     version);
+    }
+
+    if (!mod_j.contains("Author") || !mod_j["Author"].is_string())
+    {
+        throw std::invalid_argument("Module metadata is missing 'Author' field or it is not a string.");
+    }
+
+    if (!mod_j.contains("Description") || !mod_j["Description"].is_string())
+    {
+        throw std::invalid_argument("Module metadata is missing 'Description' field or it is not a string.");
+    }
+}
+
+void Module::HandleUnloader::operator()(void* handle)
 {
 #ifdef FLOW_WINDOWS
-    if (!FreeLibrary(std::bit_cast<HINSTANCE>(handle)))
+    if (!FreeLibrary(reinterpret_cast<HINSTANCE>(handle)))
 #else
     if (dlclose(handle) != 0)
 #endif
@@ -52,21 +164,10 @@ auto LoadModuleLibrary(const std::string& name)
 #endif
 }
 
+Module::Module(std::shared_ptr<NodeFactory> factory) : _factory(std::move(factory)) {}
+
 Module::Module(const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory) : _factory(std::move(factory))
 {
-    Load(dir);
-}
-
-Module::Module(const json& module_j, const std::filesystem::path& dir, std::shared_ptr<NodeFactory> factory)
-    : _factory(std::move(factory))
-{
-    Validate(module_j);
-
-    _name        = module_j["Name"];
-    _version     = module_j["Version"];
-    _author      = module_j["Author"];
-    _description = module_j["Description"];
-
     Load(dir);
 }
 
@@ -81,74 +182,44 @@ bool Module::Load(const std::filesystem::path& path)
 
     if (!std::filesystem::exists(path))
     {
-        throw std::runtime_error(std::format("Path does not exist. (file={})", path.string()));
+        throw flow::runtime_error("Path does not exist. (file={})", path.string());
     }
 
-    if (std::filesystem::is_regular_file(path))
+    if (!std::filesystem::is_regular_file(path))
     {
-        if (path.extension() != ("." + FileExtension))
-        {
-            throw std::runtime_error(
-                std::format("File is not a module. (file={}, extension={})", path.string(), FileExtension));
-        }
-
-        std::ifstream module_fs(path);
-        json module_j = json::parse(module_fs);
-
-        Validate(module_j);
-
-        _name        = module_j["Name"];
-        _version     = module_j["Version"];
-        _author      = module_j["Author"];
-        _description = module_j["Description"];
+        throw flow::runtime_error("Path is not a file. (file={})", path.string());
     }
 
-    const std::string module_file_name = _name + BinaryExtension;
-    std::filesystem::path module_binary_path;
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(path.parent_path()))
+    Unzipper unzipper(path.string());
+    if (!unzipper.isOpened())
     {
-        if (!std::filesystem::is_regular_file(entry) ||
-            (entry.path().filename() != module_file_name && entry.path().filename() != ("lib" + module_file_name)))
-        {
-            continue;
-        }
-
-        module_binary_path = entry;
-        break;
+        throw flow::runtime_error("Failed to open module archive. (file={})", path.string());
     }
 
-    if (!std::filesystem::exists(module_binary_path))
-    {
-        throw std::runtime_error(
-            std::format("Module binary does not exist. (binary_path={})", module_binary_path.string()));
-    }
+    unzipper.extractAll(GetTempModulePath().string(), Unzipper::OverwriteMode::Overwrite);
+    unzipper.close();
+
+    json module_j = json::parse(std::ifstream(GetModuleMetaDataPath(GetTempModulePath() / path.stem())));
+    ModuleMetaData::Validate(module_j);
+    _metadata = module_j;
+
+    auto binary_path = GetModuleBinaryPath(GetTempModulePath() / path.stem());
 
 #ifdef UNICODE
-    auto handle = LoadModuleLibrary(module_binary_path.wstring());
+    auto handle = LoadModuleLibrary(binary_path.wstring());
 #else
-    auto handle = LoadModuleLibrary(module_binary_path.string());
+    auto handle = LoadModuleLibrary(binary_path.string());
 #endif
     if (!handle)
     {
-        throw std::runtime_error(
-            std::format("Failed to load module binary. (binary_path={})", module_binary_path.string()));
+        throw flow::runtime_error("Failed to load module binary. (binary_path={})", binary_path.string());
     }
 
-#ifdef FLOW_WINDOWS
-    auto register_func = GetProcAddress(handle, NodeFactory::RegisterModuleFuncName);
-#else
-    auto register_func = dlsym(handle, NodeFactory::RegisterModuleFuncName);
-#endif
-    if (auto RegisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(register_func))
-    {
-        RegisterModule_func(_factory);
-        _handle.reset(std::bit_cast<void*>(handle));
-        return true;
-    }
+    _handle.reset(reinterpret_cast<void*>(handle));
 
-    HandleDelete{}(handle);
+    RegisterModuleNodes(_factory);
 
-    throw std::runtime_error(std::format("Failed to load symbols for RegisterModule. (file={})", path.string()));
+    return true;
 }
 
 bool Module::Unload()
@@ -158,35 +229,65 @@ bool Module::Unload()
         return false;
     }
 
-#ifdef FLOW_WINDOWS
-    auto unregister = GetProcAddress(std::bit_cast<HINSTANCE>(_handle.get()), NodeFactory::UnregisterModuleFuncName);
-#else
-    auto unregister = dlsym(_handle.get(), NodeFactory::UnregisterModuleFuncName);
-#endif
-    if (auto UnregisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(unregister))
-    {
-        UnregisterModule_func(_factory);
-    }
+    UnregisterModuleNodes(_factory);
 
     _handle.reset();
     return true;
 }
 
-void Module::Validate(const json& mod_j)
+void Module::RegisterModuleNodes() { RegisterModuleNodes(_factory); }
+
+void Module::UnregisterModuleNodes() { UnregisterModuleNodes(_factory); }
+
+void Module::RegisterModuleNodes(const std::shared_ptr<NodeFactory>& factory)
 {
-    if (!mod_j.contains("Name") || !mod_j.contains("Author") || !mod_j.contains("Version") ||
-        !mod_j.contains("Description"))
+    if (!_handle)
     {
-        throw std::invalid_argument("JSON is not a valid flow::Module");
+        throw std::runtime_error("Module is not loaded, cannot register nodes.");
     }
 
-    std::regex semver_regex(R"(^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$)");
-    const std::string& version = mod_j["Version"].get_ref<const std::string&>();
-
-    if (!std::regex_match(version, semver_regex))
+    if (!factory)
     {
-        throw std::invalid_argument(std::format("Version is not in numeric only format (version={})", version));
+        throw std::invalid_argument("NodeFactory is null, cannot register nodes.");
     }
+
+#ifdef FLOW_WINDOWS
+    auto register_func =
+        GetProcAddress(reinterpret_cast<HINSTANCE>(_handle.get()), NodeFactory::RegisterModuleFuncName);
+#else
+    auto register_func = dlsym(_handle.get(), NodeFactory::RegisterModuleFuncName);
+#endif
+    if (auto RegisterModule_func = reinterpret_cast<NodeFactory::ModuleMethod_t>(register_func)) [[likely]]
+    {
+        return RegisterModule_func(factory);
+    }
+
+    throw std::runtime_error("Failed to load symbols for RegisterModule.");
+}
+
+void Module::UnregisterModuleNodes(const std::shared_ptr<NodeFactory>& factory)
+{
+    if (!_handle)
+    {
+        throw std::runtime_error("Module is not loaded, cannot unregister nodes.");
+    }
+
+    if (!factory)
+    {
+        throw std::invalid_argument("NodeFactory is null, cannot unregister nodes.");
+    }
+
+#ifdef FLOW_WINDOWS
+    auto unregister = GetProcAddress(reinterpret_cast<HINSTANCE>(_handle.get()), NodeFactory::UnregisterModuleFuncName);
+#else
+    auto unregister = dlsym(_handle.get(), NodeFactory::UnregisterModuleFuncName);
+#endif
+    if (auto UnregisterModule_func = reinterpret_cast<NodeFactory::ModuleMethod_t>(unregister)) [[likely]]
+    {
+        return UnregisterModule_func(factory);
+    }
+
+    throw std::runtime_error("Failed to load symbols for UnregisterModule.");
 }
 
 FLOW_NAMESPACE_END
