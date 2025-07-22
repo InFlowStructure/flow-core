@@ -18,8 +18,9 @@ endif()
 # Options
 # -----------------------------------------------------------------------------
 
-option(flow-core_BUILD_TESTS "Build tests - requires gtest" OFF)
-option(flow-core_INSTALL "Add installation targets" OFF)
+option(${PROJECT_NAME}_BUILD_TESTS "Build tests (gtest)" OFF)
+option(${PROJECT_NAME}_BUILD_TOOLS "Build tools" OFF)
+option(${PROJECT_NAME}_INSTALL "Add installation targets" OFF)
 
 # -----------------------------------------------------------------------------
 # Dependencies
@@ -40,10 +41,10 @@ set_target_properties(zipper PROPERTIES
 # Library
 # -----------------------------------------------------------------------------
 
-set(flow-core_HEADERS_DIR "${CMAKE_CURRENT_LIST_DIR}/include")
-file(GLOB flow-core_HEADERS "${flow-core_HEADERS_DIR}/flow/core/*.hpp")
+set(${PROJECT_NAME}_HEADERS_DIR "${CMAKE_CURRENT_LIST_DIR}/include")
+file(GLOB ${PROJECT_NAME}_HEADERS "${${PROJECT_NAME}_HEADERS_DIR}/flow/core/*.hpp")
 file(GLOB thread-pool_HEADERS "${thread-pool_SOURCE_DIR}/include/*.hpp")
-list(APPEND ${flow-core_HEADERS} ${thread-pool_HEADERS})
+list(APPEND ${${PROJECT_NAME}_HEADERS} ${thread-pool_HEADERS})
 
 add_library(${PROJECT_NAME} SHARED
   src/Connection.cpp
@@ -57,10 +58,11 @@ add_library(${PROJECT_NAME} SHARED
   src/TypeConversion.cpp
   src/UUID.cpp
 
-  ${flow-core_HEADERS}
+  ${${PROJECT_NAME}_HEADERS}
 )
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+target_compile_definitions(${PROJECT_NAME} PRIVATE FLOW_CORE_EXPORT)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
@@ -102,11 +104,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 # Install
 # -----------------------------------------------------------------------------
 
-if(flow-core_INSTALL)
+if(${PROJECT_NAME}_INSTALL)
   set(export_destination "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
   set(export_targets ${PROJECT_NAME})
 
-  if (NOT flow-core_USE_EXTERNAL_JSON)
+  if (NOT ${PROJECT_NAME}_USE_EXTERNAL_JSON)
     list(APPEND export_targets nlohmann_json)
   endif()
 
@@ -145,7 +147,15 @@ endif()
 # Tests
 # -----------------------------------------------------------------------------
 
-if (flow-core_BUILD_TESTS)
+if (${PROJECT_NAME}_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+# -----------------------------------------------------------------------------
+# Tools
+# -----------------------------------------------------------------------------
+
+if (${PROJECT_NAME}_BUILD_TOOLS)
+  add_subdirectory(tools)
 endif()

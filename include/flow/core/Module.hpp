@@ -23,6 +23,8 @@ class NodeFactory;
  */
 struct ModuleMetaData
 {
+    static void Validate(const json& module_json);
+
     /// The name of the module.
     std::string Name;
 
@@ -117,9 +119,6 @@ class Module
      * @return A const reference to the ModuleMetaData.
      */
     const std::optional<ModuleMetaData>& GetMetaData() const noexcept { return _metadata; }
-
-  private:
-    void ValidateMetaData(const json& module_json);
 
   public:
     /**

@@ -24,6 +24,25 @@ FLOW_NAMESPACE_BEGIN
 
 using namespace zipper;
 
+struct formatted_error : public std::runtime_error
+{
+    template<typename... Args>
+    formatted_error(const std::format_string<Args...> fmt, Args&&... args)
+        : runtime_error(std::format(fmt, std::forward<Args>(args)...))
+    {
+    }
+};
+
+struct runtime_error : public formatted_error
+{
+    using formatted_error::formatted_error;
+};
+
+struct invalid_argument : public formatted_error
+{
+    using formatted_error::formatted_error;
+};
+
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ModuleMetaData, Name, Version, Author, Description);
 
 const std::string Module::FileExtension = "fmod";
@@ -38,6 +57,8 @@ constexpr const char* platform = "linux";
 
 #ifdef FLOW_X86_64
 constexpr const char* architecture = "x86_64";
+#elif defined(FLOW_X86)
+constexpr const char* architecture = "x86";
 #elif defined(FLOW_ARM)
 constexpr const char* architecture = "arm64";
 #else
@@ -86,10 +107,42 @@ std::filesystem::path GetTempModulePath()
     return temp_path;
 }
 
+void ModuleMetaData::Validate(const json& mod_j)
+{
+    if (!mod_j.contains("Name") || !mod_j["Name"].is_string())
+    {
+        throw std::invalid_argument("Module metadata is missing 'Name' field or it is not a string.");
+    }
+
+    if (!mod_j.contains("Version") || !mod_j["Version"].is_string())
+    {
+        throw std::invalid_argument("Module metadata is missing 'Version' field or it is not a string.");
+    }
+
+    std::regex semver_regex(R"(^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$)");
+    const std::string& version = mod_j["Version"].get_ref<const std::string&>();
+
+    if (!std::regex_match(version, semver_regex))
+    {
+        throw flow::invalid_argument("Module metadata 'Version' field is not a valid semantic version. (version={})",
+                                     version);
+    }
+
+    if (!mod_j.contains("Author") || !mod_j["Author"].is_string())
+    {
+        throw std::invalid_argument("Module metadata is missing 'Author' field or it is not a string.");
+    }
+
+    if (!mod_j.contains("Description") || !mod_j["Description"].is_string())
+    {
+        throw std::invalid_argument("Module metadata is missing 'Description' field or it is not a string.");
+    }
+}
+
 void Module::HandleUnloader::operator()(void* handle)
 {
 #ifdef FLOW_WINDOWS
-    if (!FreeLibrary(std::bit_cast<HINSTANCE>(handle)))
+    if (!FreeLibrary(reinterpret_cast<HINSTANCE>(handle)))
 #else
     if (dlclose(handle) != 0)
 #endif
@@ -129,43 +182,40 @@ bool Module::Load(const std::filesystem::path& path)
 
     if (!std::filesystem::exists(path))
     {
-        throw std::runtime_error(std::format("Path does not exist. (file={})", path.string()));
+        throw flow::runtime_error("Path does not exist. (file={})", path.string());
     }
 
     if (!std::filesystem::is_regular_file(path))
     {
-        throw std::runtime_error(std::format("Path is not a file. (file={})", path.string()));
+        throw flow::runtime_error("Path is not a file. (file={})", path.string());
     }
 
     Unzipper unzipper(path.string());
     if (!unzipper.isOpened())
     {
-        throw std::runtime_error(std::format("Failed to open module archive. (file={})", path.string()));
+        throw flow::runtime_error("Failed to open module archive. (file={})", path.string());
     }
 
     unzipper.extractAll(GetTempModulePath().string(), Unzipper::OverwriteMode::Overwrite);
     unzipper.close();
 
-    const auto module_metadata_path = GetModuleMetaDataPath(GetTempModulePath() / path.stem());
-    std::ifstream metadata_fs(module_metadata_path);
-    json module_j = json::parse(metadata_fs);
-    ValidateMetaData(module_j);
+    json module_j = json::parse(std::ifstream(GetModuleMetaDataPath(GetTempModulePath() / path.stem())));
+    ModuleMetaData::Validate(module_j);
     _metadata = module_j;
 
-    auto module_binary_path = GetModuleBinaryPath(GetTempModulePath() / path.stem());
+    auto binary_path = GetModuleBinaryPath(GetTempModulePath() / path.stem());
 
 #ifdef UNICODE
-    auto handle = LoadModuleLibrary(module_binary_path.wstring());
+    auto handle = LoadModuleLibrary(binary_path.wstring());
 #else
-    auto handle = LoadModuleLibrary(module_binary_path.string());
+    auto handle = LoadModuleLibrary(binary_path.string());
 #endif
     if (!handle)
     {
-        throw std::runtime_error(
-            std::format("Failed to load module binary. (binary_path={})", module_binary_path.string()));
+        throw flow::runtime_error("Failed to load module binary. (binary_path={})", binary_path.string());
     }
 
-    _handle.reset(std::bit_cast<void*>(handle));
+    _handle.reset(reinterpret_cast<void*>(handle));
 
     RegisterModuleNodes(_factory);
 
@@ -202,11 +252,12 @@ void Module::RegisterModuleNodes(const std::shared_ptr<NodeFactory>& factory)
     }
 
 #ifdef FLOW_WINDOWS
-    auto register_func = GetProcAddress(std::bit_cast<HINSTANCE>(_handle.get()), NodeFactory::RegisterModuleFuncName);
+    auto register_func =
+        GetProcAddress(reinterpret_cast<HINSTANCE>(_handle.get()), NodeFactory::RegisterModuleFuncName);
 #else
     auto register_func = dlsym(_handle.get(), NodeFactory::RegisterModuleFuncName);
 #endif
-    if (auto RegisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(register_func)) [[likely]]
+    if (auto RegisterModule_func = reinterpret_cast<NodeFactory::ModuleMethod_t>(register_func)) [[likely]]
     {
         return RegisterModule_func(factory);
     }
@@ -227,48 +278,16 @@ void Module::UnregisterModuleNodes(const std::shared_ptr<NodeFactory>& factory)
     }
 
 #ifdef FLOW_WINDOWS
-    auto unregister = GetProcAddress(std::bit_cast<HINSTANCE>(_handle.get()), NodeFactory::UnregisterModuleFuncName);
+    auto unregister = GetProcAddress(reinterpret_cast<HINSTANCE>(_handle.get()), NodeFactory::UnregisterModuleFuncName);
 #else
     auto unregister = dlsym(_handle.get(), NodeFactory::UnregisterModuleFuncName);
 #endif
-    if (auto UnregisterModule_func = std::bit_cast<NodeFactory::ModuleMethod_t>(unregister)) [[likely]]
+    if (auto UnregisterModule_func = reinterpret_cast<NodeFactory::ModuleMethod_t>(unregister)) [[likely]]
     {
         return UnregisterModule_func(factory);
     }
 
     throw std::runtime_error("Failed to load symbols for UnregisterModule.");
-}
-
-void Module::ValidateMetaData(const json& mod_j)
-{
-    if (!mod_j.contains("Name") || !mod_j["Name"].is_string())
-    {
-        throw std::invalid_argument("Module metadata is missing 'Name' field or it is not a string.");
-    }
-
-    if (!mod_j.contains("Version") || !mod_j["Version"].is_string())
-    {
-        throw std::invalid_argument("Module metadata is missing 'Version' field or it is not a string.");
-    }
-
-    std::regex semver_regex(R"(^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$)");
-    const std::string& version = mod_j["Version"].get_ref<const std::string&>();
-
-    if (!std::regex_match(version, semver_regex))
-    {
-        throw std::invalid_argument(
-            std::format("Module metadata 'Version' field is not a valid semantic version. (version={})", version));
-    }
-
-    if (!mod_j.contains("Author") || !mod_j["Author"].is_string())
-    {
-        throw std::invalid_argument("Module metadata is missing 'Author' field or it is not a string.");
-    }
-
-    if (!mod_j.contains("Description") || !mod_j["Description"].is_string())
-    {
-        throw std::invalid_argument("Module metadata is missing 'Description' field or it is not a string.");
-    }
 }
 
 FLOW_NAMESPACE_END
