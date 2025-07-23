@@ -19,7 +19,7 @@ endif()
 
 add_dependencies(${PROJECT_NAME} flow-core)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(${PROJECT_NAME} PUBLIC flow-core)
+target_link_libraries(${PROJECT_NAME} PUBLIC flow-core::flow-core)
 
 include(${CMAKE_SOURCE_DIR}/cmake/FlowModule.cmake)
 CreateFlowModule(${PROJECT_NAME})
