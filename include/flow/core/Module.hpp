@@ -124,7 +124,7 @@ class Module
     /**
      * @brief The file extension for module metadata files.
      */
-    static const std::string FileExtension;
+    static const std::string FLOW_CORE_API FileExtension;
 
   private:
     std::unique_ptr<void, HandleUnloader> _handle;

@@ -24,6 +24,8 @@ FLOW_NAMESPACE_BEGIN
 
 using namespace zipper;
 
+const std::string Module::FileExtension = "fmod";
+
 struct formatted_error : public std::runtime_error
 {
     template<typename... Args>
@@ -45,25 +47,8 @@ struct invalid_argument : public formatted_error
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ModuleMetaData, Name, Version, Author, Description);
 
-const std::string Module::FileExtension = "fmod";
-
-#ifdef FLOW_WINDOWS
-constexpr const char* platform = "windows";
-#elif defined(FLOW_APPLE)
-constexpr const char* platform = "macos";
-#else
-constexpr const char* platform = "linux";
-#endif
-
-#ifdef FLOW_X86_64
-constexpr const char* architecture = "x86_64";
-#elif defined(FLOW_X86)
-constexpr const char* architecture = "x86";
-#elif defined(FLOW_ARM)
-constexpr const char* architecture = "arm64";
-#else
-#error "Unsupported architecture"
-#endif
+constexpr const char* platform     = FLOW_PLATFORM;
+constexpr const char* architecture = FLOW_ARCH;
 
 #ifdef FLOW_WINDOWS
 constexpr const char* library_extension = ".dll";

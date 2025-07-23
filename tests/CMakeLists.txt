@@ -32,7 +32,7 @@ if(MSVC)
 endif()
 
 target_link_libraries(${TEST_EXE}
-  flow-core
+  flow-core::flow-core
   GTest::gtest_main
 )
 
