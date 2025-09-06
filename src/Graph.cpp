@@ -200,19 +200,57 @@ std::vector<SharedNode> Graph::GetOrphanNodes() const
     return orphans;
 }
 
+bool Graph::CanConnectNode(const UUID& start, const IndexableName& start_key, const UUID& end,
+                          const IndexableName& end_key)
+{
+    // Check if both nodes exist
+    auto start_node = GetNode(start);
+    auto end_node = GetNode(end);
+    if (!(start_node && end_node)) return false;
+
+    // Check if the start node has the specified output port
+    const auto start_port = start_node->GetOutputPort(start_key);
+    if (!start_port) return false;
+
+    // Check if the end node has the specified input port
+    const auto end_port = end_node->GetInputPort(end_key);
+    if (!end_port) return false;
+
+    // Check if the end port is already connected
+    if (end_port->IsConnected())
+    {
+        // Check if it's already connected to the same start port
+        auto conns = _connections.FindConnections(start, start_key);
+        auto found_conn = std::find_if(conns.begin(), conns.end(), [&](const auto& conn) {
+            return conn->EndNodeID() == end && conn->EndPortKey() == end_key;
+        });
+        
+        // If already connected to the same ports, consider it as "can connect" (no-op)
+        return found_conn != conns.end();
+    }
+
+    return true;
+}
+
 SharedConnection Graph::ConnectNodes(const UUID& start_id, const IndexableName& start_port_key, const UUID& end_id,
                                      const IndexableName& end_port_key)
 {
+    // First check if the nodes can be connected
+    if (!CanConnectNode(start_id, start_port_key, end_id, end_port_key))
+    {
+        return nullptr;
+    }
+
+    // Get nodes again (we know they exist from CanConnectNode)
     auto in_node  = GetNode(start_id);
     auto out_node = GetNode(end_id);
-
-    if (!(in_node && out_node)) return nullptr;
 
     const auto start_port = in_node->GetOutputPort(start_port_key);
     const auto end_port   = out_node->GetInputPort(end_port_key);
 
-    start_port->Connect();
-    if (!end_port->Connect())
+    // If end port is already connected, it means it's connected to the same start port
+    // (verified by CanConnectNode), so return the existing connection
+    if (end_port->IsConnected())
     {
         auto conns      = _connections.FindConnections(start_id, start_port_key);
         auto found_conn = std::find_if(conns.begin(), conns.end(), [&](const auto& conn) {
@@ -223,11 +261,16 @@ SharedConnection Graph::ConnectNodes(const UUID& start_id, const IndexableName& 
         {
             return *found_conn;
         }
-
-        return nullptr;
     }
 
+    // Mark ports as connected
+    start_port->Connect();
+    end_port->Connect();
+
+    // Create the connection
     auto&& conn = _connections.Add(start_id, start_port->GetVarName(), end_id, end_port->GetVarName());
+    
+    // Propagate existing data if any
     if (auto data = in_node->GetOutputData(start_port_key))
     {
         PropagateConnectionsData(start_id, start_port_key, std::move(data));
