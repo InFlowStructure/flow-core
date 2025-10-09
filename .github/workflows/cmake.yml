@@ -34,15 +34,14 @@ jobs:
           submodules: recursive
 
       - name: Install Packages (Ubuntu)
-        run: |
-          sudo apt-get install -y uuid-dev
         if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y uuid-dev
 
       - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -Dflow-core_BUILD_TESTS=ON
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -Dflow-core_BUILD_TESTS=ON -Dflow-core_BUILD_BENCHMARKS=ON
 
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel 18
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel 10
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -95,7 +94,7 @@ jobs:
           key: ${{matrix.os}}-build-${{github.sha}}
 
       - name: Benchmark
-        run: ${{github.workspace}}/build/benchmark/flow_core_bench
+        run: ${{github.workspace}}/build/benchmarks/${{ matrix.os == 'windows-latest' && env.BUILD_TYPE || '' }}/flow_core_bench
 
   cleanup_cache:
     needs: [test, benchmark]
@@ -105,6 +104,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
+    permissions: write-all
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
@@ -113,5 +113,4 @@ jobs:
     if: always() # Run even if previous jobs failed
     steps:
       - name: Delete Cache
-        run: |
-          gh cache delete ${{matrix.os}}-build-${{github.sha}}
+        run: gh cache delete ${{matrix.os}}-build-${{github.sha}}

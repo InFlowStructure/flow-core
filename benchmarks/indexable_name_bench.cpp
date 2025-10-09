@@ -9,19 +9,7 @@ static void IndexableName_Construct(benchmark::State& state)
 {
     for ([[maybe_unused]] const auto& _ : state)
     {
-        flow::IndexableName name{"benchmark"};
-        benchmark::DoNotOptimize(name);
-        benchmark::ClobberMemory();
-    }
-}
-
-static void IndexableName_ConstexprConstruct(benchmark::State& state)
-{
-    for ([[maybe_unused]] const auto& _ : state)
-    {
-        constexpr flow::IndexableName name{"benchmark"};
-        benchmark::DoNotOptimize(name);
-        benchmark::ClobberMemory();
+        flow::IndexableName{"benchmark"};
     }
 }
 
@@ -37,5 +25,4 @@ static void IndexableName_Hash(benchmark::State& state)
 }
 
 BENCHMARK(IndexableName_Construct);
-BENCHMARK(IndexableName_ConstexprConstruct);
 BENCHMARK(IndexableName_Hash);

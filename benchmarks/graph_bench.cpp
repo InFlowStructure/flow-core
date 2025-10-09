@@ -13,9 +13,7 @@ static void Graph_Construct(benchmark::State& state)
     auto env     = flow::Env::Create(factory);
     for ([[maybe_unused]] const auto& _ : state)
     {
-        flow::Graph graph("benchmark", env);
-        benchmark::DoNotOptimize(graph);
-        benchmark::ClobberMemory();
+        flow::Graph("benchmark", env);
     }
 }
 
