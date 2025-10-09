@@ -25,6 +25,11 @@ Env::Env(std::shared_ptr<NodeFactory> factory, const Settings& settings)
                                          std::chrono::days, std::chrono::months, std::chrono::years>();
 }
 
+std::shared_ptr<Env> Env::Create(std::shared_ptr<NodeFactory> factory, const Settings& settings)
+{
+    return std::shared_ptr<Env>(new Env(std::move(factory), settings));
+}
+
 void Env::Wait() { _pool->wait(); }
 
 std::string Env::GetVar(const std::string& varname) const

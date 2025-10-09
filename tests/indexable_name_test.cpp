@@ -24,6 +24,7 @@ TEST(IndexableNameTest, Equality)
     ASSERT_EQ(IndexableName{"tests"}, IndexableName{std::string("tests")});
     ASSERT_EQ(IndexableName{"tests"}, IndexableName{std::string_view("tests")});
 
+    ASSERT_NE(IndexableName{"tests"}, IndexableName{"test"});
     ASSERT_NE(IndexableName{"tests"}, IndexableName{"stset"});
 }
 

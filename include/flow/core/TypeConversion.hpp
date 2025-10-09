@@ -48,6 +48,7 @@ class TypeRegistry
                 return MakeNodeData<To, From>(*from_data);
             }
         }
+
         return data;
     }
 
@@ -151,16 +152,17 @@ void TypeRegistry::RegisterUnidirectionalConversion(const ConversionFunc& conver
 
     if constexpr (std::is_same_v<std::decay_t<From>, std::decay_t<To>>)
     {
-        RegisterConversion<std::decay_t<From>, std::add_lvalue_reference_t<std::decay_t<To>>>();
-        RegisterConversion<std::decay_t<From>, std::add_lvalue_reference_t<std::add_const_t<std::decay_t<To>>>>();
-        RegisterConversion<std::decay_t<From>, std::add_rvalue_reference_t<std::decay_t<To>>>();
-        RegisterConversion<std::add_const_t<std::decay_t<From>>,
-                           std::add_lvalue_reference_t<std::add_const_t<std::decay_t<To>>>>();
-        RegisterConversion<std::add_lvalue_reference_t<std::decay_t<From>>, std::decay_t<To>>();
-        RegisterConversion<std::add_lvalue_reference_t<std::decay_t<From>>,
-                           std::add_lvalue_reference_t<std::add_const_t<std::decay_t<To>>>>();
-        RegisterConversion<std::add_lvalue_reference_t<std::add_const_t<std::decay_t<From>>>, std::decay_t<To>>();
-        RegisterConversion<std::add_rvalue_reference_t<std::decay_t<From>>, std::decay_t<To>>();
+        using T = std::decay_t<From>;
+        using U = std::decay_t<To>;
+
+        RegisterConversion<T, std::add_lvalue_reference_t<U>>();
+        RegisterConversion<T, std::add_lvalue_reference_t<std::add_const_t<U>>>();
+        RegisterConversion<T, std::add_rvalue_reference_t<U>>();
+        RegisterConversion<std::add_const_t<T>, std::add_lvalue_reference_t<std::add_const_t<U>>>();
+        RegisterConversion<std::add_lvalue_reference_t<T>, U>();
+        RegisterConversion<std::add_lvalue_reference_t<T>, std::add_lvalue_reference_t<std::add_const_t<U>>>();
+        RegisterConversion<std::add_lvalue_reference_t<std::add_const_t<T>>, U>();
+        RegisterConversion<std::add_rvalue_reference_t<T>, U>();
     }
 }
 

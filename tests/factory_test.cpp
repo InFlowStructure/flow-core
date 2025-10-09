@@ -36,17 +36,17 @@ struct TestNode : public Node
 };
 } // namespace
 
-TEST(FactoryTest, Construction) { ASSERT_NO_THROW(auto factory = std::make_shared<NodeFactory>()); }
+TEST(FactoryTest, Construction) { ASSERT_NO_THROW(auto factory = NodeFactory::Create()); }
 
 TEST(FactoryTest, RegisterNodeClass)
 {
-    auto factory = std::make_shared<NodeFactory>();
+    auto factory = NodeFactory::Create();
     ASSERT_NO_THROW(factory->RegisterNodeClass<TestNode>("Test"));
 }
 
 TEST(FactoryTest, CreateNode)
 {
-    auto factory = std::make_shared<NodeFactory>();
+    auto factory = NodeFactory::Create();
     auto env     = Env::Create(factory);
     ASSERT_NO_THROW(factory->RegisterNodeClass<TestNode>("Test"));
     ASSERT_NO_THROW(auto node = factory->CreateNode(std::string{TypeName_v<TestNode>}, UUID{}, "test", env));

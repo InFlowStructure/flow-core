@@ -13,7 +13,7 @@ using namespace flow;
 
 namespace
 {
-auto factory = std::make_shared<NodeFactory>();
+auto factory = NodeFactory::Create();
 auto env     = Env::Create(factory);
 
 struct TestNode : public Node

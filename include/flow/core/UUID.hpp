@@ -60,11 +60,9 @@ class UUID
      */
     [[nodiscard]] std::size_t hash() const noexcept
     {
-        const auto* half = std::bit_cast<const uint64_t*>(_id.data());
+        const auto* half = reinterpret_cast<const uint64_t*>(_id.data());
         return half[0] ^ half[1];
     }
-
-    friend struct std::hash<UUID>;
 
   private:
     /// Storage for 16-byte UUID value

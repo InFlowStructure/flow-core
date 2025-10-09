@@ -230,6 +230,7 @@ class Node
     virtual void Compute() = 0;
 
     virtual json SaveInputs() const;
+
     virtual void RestoreInputs(const json&);
 
   protected:

@@ -33,7 +33,7 @@ class EventDispatcher
      * @param name The unique identifier of the event to be bound.
      * @param event The event to be bound.
      */
-    void Bind(IndexableName name, EventType&& event) noexcept { _events.emplace(name, std::move(event)); }
+    void Bind(IndexableName name, EventType&& event) noexcept { _events.try_emplace(name, std::move(event)); }
 
     /**
      * @brief Unbinds an event by name.
@@ -48,7 +48,7 @@ class EventDispatcher
     void UnbindAll() { _events.clear(); }
 
     /**
-     * @brief Broadcasts the given arguments to all bound events.
+     * @brief Broadcasts the given arguments to all bound events asynchronously.
      *
      * @param args Variadic arguments to pass to all bound events.
      */

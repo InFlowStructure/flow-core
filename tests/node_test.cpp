@@ -14,7 +14,7 @@ using namespace flow;
 
 namespace test
 {
-auto factory = std::make_shared<NodeFactory>();
+auto factory = NodeFactory::Create();
 auto env     = Env::Create(factory);
 } // namespace test
 
@@ -97,6 +97,7 @@ TEST(NodeTest, AddInputPorts)
         ASSERT_EQ(data->Get(), 101);
     }
 }
+
 TEST(NodeTest, AddOutputPorts)
 {
     NodeTest::TestNode node;
@@ -157,21 +158,22 @@ int return_ref_test_method(int& i) { return i; }
 struct TestData
 {
 };
-void custom_type(const TestData&) {}
+void custom_type_test_method(const TestData&) {}
+
+#define DECLARE_FUNCTION_NODE(f) FunctionNode<decltype(f), f> f##_node({}, #f, test::env);
 
 TEST(NodeTest, WrapFunctions)
 {
-    FunctionNode<decltype(void_test_method), void_test_method> void_node({}, "void_test_method", test::env);
-    FunctionNode<decltype(return_test_method), return_test_method> return_node({}, "return_test_method", test::env);
-    FunctionNode<decltype(return_ref_test_method), return_ref_test_method> return_ref_node({}, "return_ref_test_method",
-                                                                                           test::env);
-    FunctionNode<decltype(custom_type), custom_type> custom_type_node({}, "custom_type", test::env);
+    DECLARE_FUNCTION_NODE(void_test_method);
+    DECLARE_FUNCTION_NODE(return_test_method);
+    DECLARE_FUNCTION_NODE(return_ref_test_method);
+    DECLARE_FUNCTION_NODE(custom_type_test_method);
 
-    ASSERT_EQ(void_node.GetInputPorts().size(), 1);
-    ASSERT_EQ(return_node.GetInputPorts().size(), 1);
-    ASSERT_TRUE(return_ref_node.GetInputPorts().empty());
+    ASSERT_EQ(void_test_method_node.GetInputPorts().size(), 1);
+    ASSERT_EQ(return_test_method_node.GetInputPorts().size(), 1);
+    ASSERT_TRUE(return_ref_test_method_node.GetInputPorts().empty());
 
-    ASSERT_TRUE(void_node.GetOutputPorts().empty());
-    ASSERT_EQ(return_node.GetOutputPorts().size(), 1);
-    ASSERT_EQ(return_ref_node.GetOutputPorts().size(), 2);
+    ASSERT_TRUE(void_test_method_node.GetOutputPorts().empty());
+    ASSERT_EQ(return_test_method_node.GetOutputPorts().size(), 1);
+    ASSERT_EQ(return_ref_test_method_node.GetOutputPorts().size(), 2);
 }

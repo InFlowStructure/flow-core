@@ -19,7 +19,7 @@ Flow Core is built around these key concepts:
 #include <flow/core/NodeFactory.hpp>
 
 int main() {
-    auto factory = std::make_shared<flow::NodeFactory>();
+    auto factory = flow::NodeFactory::Create();
     auto env = flow::Env::Create(factory);
     auto graph = std::make_shared<flow::Graph>("MyGraph", env);
 

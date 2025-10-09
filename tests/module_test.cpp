@@ -14,7 +14,7 @@ using namespace flow;
 
 const std::filesystem::path module_path = std::filesystem::current_path() / "test_module.fmod";
 
-auto factory = std::make_shared<NodeFactory>();
+auto factory = NodeFactory::Create();
 auto env     = Env::Create(factory);
 
 TEST(ModuleTest, Load)
