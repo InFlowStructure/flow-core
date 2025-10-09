@@ -3,6 +3,8 @@
 
 cmake_minimum_required(VERSION 3.10)
 
+set (CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 project(flow-core VERSION 1.1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -158,7 +160,6 @@ endif()
 # -----------------------------------------------------------------------------
 
 if (${PROJECT_NAME}_BUILD_BENCHMARKS)
-  enable_testing()
   add_subdirectory(benchmarks)
 endif()
 

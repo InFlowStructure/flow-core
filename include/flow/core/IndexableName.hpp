@@ -10,6 +10,7 @@
 #include <compare>
 #include <concepts>
 #include <cstdint>
+#include <cstring>
 #include <stdexcept>
 #include <string_view>
 
