@@ -13,7 +13,6 @@
 #include <cstdlib>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -34,8 +33,16 @@ class NodeFactory
 {
     using ConstructorCallback = std::function<void*(const UUID&, const std::string&, std::shared_ptr<Env>)>;
 
+    NodeFactory() = default;
+
   public:
     virtual ~NodeFactory() = default;
+
+    /**
+     * @brief Creates a shared NodeFactory.
+     * @returns Shared ptr to a NodeFactory.
+     */
+    static std::shared_ptr<NodeFactory> Create() { return std::shared_ptr<NodeFactory>(new NodeFactory()); }
 
     /**
      * @brief Registers a node's construction method by it's friendly name and a category.
@@ -220,8 +227,6 @@ class NodeFactory
     CategoryMap _category_map;
     std::unordered_map<std::string, std::string> _friendly_names;
     TypeRegistry _conversion_registry;
-
-    mutable std::mutex _mutex;
 };
 
 /**

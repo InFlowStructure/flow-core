@@ -4,7 +4,6 @@
 #pragma once
 
 #include "Core.hpp"
-#include "NodeFactory.hpp"
 
 #include <BS_thread_pool.hpp>
 
@@ -49,7 +48,7 @@ class Env
 
   public:
     /// Type alias for a function that visits a shared node.
-    using VisitorFunction = std::function<void(const SharedNode&)>;
+    using VisitorFunction = std::function<void(const std::shared_ptr<Node>&)>;
 
     Env(const Env&) = delete;
 
@@ -60,10 +59,7 @@ class Env
      * @param settings The settings for the environment. Defaults to default-constructed Settings.
      * @returns A shared pointer to the created Env.
      */
-    static std::shared_ptr<Env> Create(std::shared_ptr<NodeFactory> factory, const Settings& settings = {})
-    {
-        return std::shared_ptr<Env>(new Env(std::move(factory), settings));
-    }
+    static std::shared_ptr<Env> Create(std::shared_ptr<NodeFactory> factory, const Settings& settings = {});
 
     /**
      * @brief Gets the current factory for building nodes.
