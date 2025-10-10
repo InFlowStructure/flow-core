@@ -3,6 +3,8 @@
 
 cmake_minimum_required(VERSION 3.10)
 
+set (CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 project(flow-core VERSION 1.1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -19,6 +21,7 @@ endif()
 # -----------------------------------------------------------------------------
 
 option(${PROJECT_NAME}_BUILD_TESTS "Build tests (gtest)" OFF)
+option(${PROJECT_NAME}_BUILD_BENCHMARKS "Build benchmarks (googlebenchmark)" OFF)
 option(${PROJECT_NAME}_BUILD_TOOLS "Build tools" OFF)
 option(${PROJECT_NAME}_INSTALL "Add installation targets" OFF)
 
@@ -150,6 +153,14 @@ endif()
 if (${PROJECT_NAME}_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+# -----------------------------------------------------------------------------
+# Benchmarks
+# -----------------------------------------------------------------------------
+
+if (${PROJECT_NAME}_BUILD_BENCHMARKS)
+  add_subdirectory(benchmarks)
 endif()
 
 # -----------------------------------------------------------------------------

@@ -170,15 +170,6 @@ class Graph
                          const IndexableName& end_key);
 
     /**
-     * @brief Propagates data through the connections of the given ID.
-     *
-     * @param id The ID of the connection where the data came from.
-     * @param key The name of the port from which data is flowing.
-     * @param data The data to propagate.
-     */
-    void PropagateConnectionsData(const UUID& id, const IndexableName& key, SharedNodeData data);
-
-    /**
      * @brief Sets the name of the graph.
      * @param new_name The new Name of the graph.
      */
@@ -207,6 +198,16 @@ class Graph
      * @param g Graph to restore state into.
      */
     friend void from_json(const json& j, Graph& g);
+
+  protected:
+    /**
+     * @brief Propagates data through the connections of the given ID.
+     *
+     * @param id The ID of the connection where the data came from.
+     * @param key The name of the port from which data is flowing.
+     * @param data The data to propagate.
+     */
+    void PropagateConnectionsData(const UUID& id, const IndexableName& key, SharedNodeData data);
 
   public:
     /// Event run on Graph errors being thrown.

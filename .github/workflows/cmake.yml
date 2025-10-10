@@ -23,7 +23,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
@@ -34,15 +34,14 @@ jobs:
           submodules: recursive
 
       - name: Install Packages (Ubuntu)
-        run: |
-          sudo apt-get install -y uuid-dev
         if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y uuid-dev
 
       - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -Dflow-core_BUILD_TESTS=ON
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -Dflow-core_BUILD_TESTS=ON -Dflow-core_BUILD_BENCHMARKS=ON
 
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel 18
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel 10
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -50,6 +49,68 @@ jobs:
           name: Test Module (${{matrix.os}})
           path: ${{github.workspace}}/build/tests/test_module.fmod
 
+      - name: Cache Build Output
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/build
+          key: ${{matrix.os}}-build-${{github.sha}}
+
+  test:
+    needs: build
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore build output cache
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/build
+          key: ${{matrix.os}}-build-${{github.sha}}
+
       - name: Test
         working-directory: ${{github.workspace}}/build
         run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure
+
+  benchmark:
+    needs: build
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore build output cache
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/build
+          key: ${{matrix.os}}-build-${{github.sha}}
+
+      - name: Benchmark
+        run: ${{github.workspace}}/build/benchmarks/${{ matrix.os == 'windows-latest' && env.BUILD_TYPE || '' }}/flow_core_bench
+
+  cleanup_cache:
+    needs: [test, benchmark]
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    permissions: write-all
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+
+    if: always() # Run even if previous jobs failed
+    steps:
+      - name: Delete Cache
+        run: gh cache delete ${{matrix.os}}-build-${{github.sha}}
