@@ -9,9 +9,9 @@ This document outlines a comprehensive development plan for introducing a unifie
 
 By implementing a single unified metadata system, we solve both problems with a consistent, extensible API that serves as the "contract" between node implementations, serialization, UI tooling, and validation systems.
 
-**Estimated Total Effort**: 6-8 weeks across 4 phases
+**Estimated Total Effort**: 5-6 weeks across 3 phases
 **Risk Level**: Medium (introduces new API surface, changes serialization format)
-**Priority**: High (critical for production use and tooling support)
+**Priority**: High (critical for production use)
 
 ---
 
@@ -245,47 +245,6 @@ class Node {
 };
 ```
 
-#### Port Metadata Query (C API - FFI)
-```c
-// Query default value for input port
-FlowErrorCode flow_node_get_input_port_default_value(
-    FlowNodeHandle node,
-    const char* port_key,
-    FlowValuePtr* out_value
-);
-
-// Query metadata for single input port
-FlowErrorCode flow_node_get_input_port_metadata(
-    FlowNodeHandle node,
-    const char* port_key,
-    const char** out_metadata_json
-);
-
-// Query metadata for single output port
-FlowErrorCode flow_node_get_output_port_metadata(
-    FlowNodeHandle node,
-    const char* port_key,
-    const char** out_metadata_json
-);
-
-// Query all input port metadata
-FlowErrorCode flow_node_get_all_input_ports_metadata(
-    FlowNodeHandle node,
-    const char** out_metadata_json
-);
-
-// Query all output port metadata
-FlowErrorCode flow_node_get_all_output_ports_metadata(
-    FlowNodeHandle node,
-    const char** out_metadata_json
-);
-
-// Query complete port definitions
-FlowErrorCode flow_node_get_port_definitions(
-    FlowNodeHandle node,
-    const char** out_definitions_json
-);
-```
 
 #### Updated Serialization APIs
 ```cpp
@@ -566,57 +525,7 @@ class Module {
 };
 ```
 
-### 6. FFI C API Impact
-
-**File**: `include/flow/core/FFI.hpp` (or equivalent)
-
-#### New FFI Functions (to be implemented)
-```c
-// Port metadata queries
-FlowErrorCode flow_node_get_input_port_default_value(
-    FlowNodeHandle node, const char* port_key, FlowValuePtr* out_value);
-
-FlowErrorCode flow_node_get_input_port_metadata(
-    FlowNodeHandle node, const char* port_key, const char** out_metadata_json);
-
-FlowErrorCode flow_node_get_output_port_metadata(
-    FlowNodeHandle node, const char* port_key, const char** out_metadata_json);
-
-FlowErrorCode flow_node_get_all_input_ports_metadata(
-    FlowNodeHandle node, const char** out_metadata_json);
-
-FlowErrorCode flow_node_get_all_output_ports_metadata(
-    FlowNodeHandle node, const char** out_metadata_json);
-
-FlowErrorCode flow_node_get_port_definitions(
-    FlowNodeHandle node, const char** out_definitions_json);
-
-// NOTE: Existing functions remain for backward compatibility
-// - flow_node_get_input_port_type()
-// - flow_node_get_output_port_type()
-// - flow_node_get_port_description()
-```
-
-### 7. NodeFactory Class Impact
-
-**File**: `include/flow/core/NodeFactory.hpp`, `src/NodeFactory.cpp`
-
-#### Changes Required
-```cpp
-class NodeFactory {
-  private:
-    // UPDATED: Cache port definitions during node registration
-    // This enables validation without instantiating temporary nodes
-    std::unordered_map<std::string, PortDefinitions> _cached_port_definitions;
-
-  public:
-    // NEW: Query port definitions without instantiating a node
-    bool GetPortDefinitions(const std::string& class_name,
-                           PortDefinitions& out_definitions) const;
-};
-```
-
-### 8. FunctionNode Class Impact
+### 6. FunctionNode Class Impact
 
 **File**: `include/flow/core/FunctionNode.hpp`
 
@@ -649,8 +558,6 @@ class FunctionNode : public Node {
 | Get default value | ❌ | ✓ metadata.default_value | **NEW** |
 | Check has default | ❌ | ✓ metadata.has_default | **NEW** |
 | Get constraints | ❌ | ✓ metadata.constraints | **NEW** |
-| Single FFI call for all ports | ❌ | ✓ flow_node_get_all_input_ports_metadata() | **NEW** - Efficient |
-| Query without node instance | ❌ | ✓ NodeFactory::GetPortDefinitions() | **NEW** - No temp nodes |
 | Validate port compatibility | ❌ | ✓ via PortDefinitions | **NEW** |
 
 ### Serialization Capabilities
@@ -673,7 +580,6 @@ class FunctionNode : public Node {
 | Public Node methods | ~20 | ~25 | +5 methods (+25%) |
 | Public Port methods | ~10 | ~14 | +4 methods (+40%) |
 | New types | 0 | 2 (PortMetadata, PortDefinitions) | Improved structure |
-| FFI C functions | ~15 | ~21 | +6 functions (+40%) |
 | Breaking changes | N/A | Minimal - backward compatible | Low risk |
 
 ---
@@ -844,12 +750,7 @@ TEST(NodeMetadata, CustomNodeDefaults) { }
 - Update `Restore()` with validation
 - Ensure embedded graphs preserve port definitions
 
-**3.3 Update NodeFactory caching** (`include/flow/core/NodeFactory.hpp`, `src/NodeFactory.cpp`)
-- Add method to cache port definitions at registration time
-- Enable `GetPortDefinitions()` without instantiating temporary nodes
-- Useful for UI tools that need port info before graph loading
-
-**3.4 Tests** (`tests/graph_metadata_test.cpp`, `tests/module_metadata_test.cpp`)
+**3.3 Tests** (`tests/graph_metadata_test.cpp`, `tests/module_metadata_test.cpp`)
 ```cpp
 TEST(GraphMetadata, SaveIncludesNodePortDefinitions) { }
 TEST(GraphMetadata, RestoreValidatesPortDefinitions) { }
@@ -862,8 +763,6 @@ TEST(ModuleMetadata, EmbeddedGraphsPreserveMetadata) { }
 - `src/Graph.cpp`
 - `include/flow/core/Module.hpp`
 - `src/Module.cpp`
-- `include/flow/core/NodeFactory.hpp`
-- `src/NodeFactory.cpp`
 - `tests/graph_metadata_test.cpp` (NEW)
 - `tests/module_metadata_test.cpp` (NEW)
 
@@ -876,108 +775,11 @@ TEST(ModuleMetadata, EmbeddedGraphsPreserveMetadata) { }
 #### Estimated Effort: 1 week
 - Graph updates: 2 days
 - Module updates: 2 days
-- Factory caching: 1 day
 - Tests: 2 days
 
 ---
 
-### Phase 4: FFI Bindings & C API (Week 6-7)
-
-**Goal**: Expose metadata API through C interface for language bindings
-
-#### Deliverables
-- [ ] New C FFI functions for metadata queries
-- [ ] Dart FFI bindings
-- [ ] Language binding documentation
-- [ ] Example code (Dart)
-- [ ] Comprehensive tests
-
-#### Implementation Details
-
-**4.1 Define C API** (New file or update existing FFI header)
-```c
-// Port metadata queries
-FlowErrorCode flow_node_get_input_port_metadata(
-    FlowNodeHandle node,
-    const char* port_key,
-    const char** out_metadata_json
-);
-
-FlowErrorCode flow_node_get_all_input_ports_metadata(
-    FlowNodeHandle node,
-    const char** out_metadata_json
-);
-
-// ... (other functions as listed in proposed API section)
-```
-
-**4.2 Implement C wrapper functions** (`src/FFI.cpp` or equivalent)
-- Implement each new C function
-- Ensure proper error handling
-- Handle JSON string allocation/deallocation
-- Use flow-core's memory allocator
-
-**4.3 Create Dart bindings** (`lib/src/node.dart` in flow_ffi package)
-```dart
-class Node {
-  Future<PortMetadata?> getInputPortMetadata(String portKey) async { }
-  Future<List<PortMetadata>> getAllInputPortsMetadata() async { }
-  Future<PortMetadata?> getOutputPortMetadata(String portKey) async { }
-  Future<List<PortMetadata>> getAllOutputPortsMetadata() async { }
-  Future<PortDefinitions> getPortDefinitions() async { }
-}
-
-class PortMetadata {
-  final String key;
-  final String caption;
-  final String type;
-  final String direction;
-  final int index;
-  final bool required;
-  final bool hasDefault;
-  final String? defaultValue;
-  final PortConstraints? constraints;
-  final Map<String, dynamic>? metadata;
-}
-```
-
-**4.4 Add example code**
-- Visual node editor integration example
-- Port query usage example
-- Default value display example
-
-**4.5 Tests** (`tests/ffi_metadata_test.cpp`, FFI integration tests)
-```cpp
-TEST(FFIMetadata, GetInputPortMetadata) { }
-TEST(FFIMetadata, GetAllInputPortsMetadata) { }
-TEST(FFIMetadata, ErrorHandling) { }
-TEST(FFIMetadata, JSONStringAllocation) { }
-```
-
-#### Files Modified/Created
-- FFI header (new or updated)
-- `src/FFI.cpp` (new or updated)
-- `flow_ffi/lib/src/node.dart` (new or updated)
-- `flow_ffi/lib/src/types/port_metadata.dart` (NEW)
-- `tests/ffi_metadata_test.cpp` (NEW)
-- `examples/node_metadata_example.dart` (NEW)
-- `examples/node_metadata_example.cpp` (NEW)
-
-#### Testing Strategy
-- FFI function tests
-- Dart binding tests
-- End-to-end integration tests
-- Language binding tests
-
-#### Estimated Effort: 1.5 weeks
-- C API implementation: 2 days
-- Dart bindings: 2 days
-- Example code: 1 day
-- Tests: 2 days
-
----
-
-### Phase 5: Documentation & Polish (Week 8)
+### Phase 4: Documentation & Polish (Week 6)
 
 **Goal**: Complete documentation, examples, and final testing
 
@@ -1066,23 +868,12 @@ Thu-Fri:  Code review, fixes, migration guide
 ```
 Mon-Tue:  Update Graph save/restore
 Wed:      Update Module save/restore
-Thu:      NodeFactory caching implementation
-Fri:      Tests, code review
+Thu-Fri:  Tests, code review
 ```
 
-### Week 6-7: Phase 4 - FFI & Bindings
+### Week 6: Phase 4 - Documentation & Polish
 ```
-Mon-Tue:  C API definition and implementation
-Wed-Thu:  Dart bindings implementation
-Fri:      Integration tests
-Mon-Tue:  Example code and documentation
-Wed-Thu:  FFI tests, edge cases
-Fri:      Code review, fixes
-```
-
-### Week 8: Phase 5 - Documentation & Polish
-```
-Mon-Wed:  Complete documentation, migration guides
+Mon-Wed:  Complete documentation, migration guides, examples
 Thu-Fri:  Final testing, bug fixes, release prep
 ```
 
@@ -1109,16 +900,6 @@ Thu-Fri:  Final testing, bug fixes, release prep
 - Lazy evaluation of JSON serialization
 - Profile before and after implementation
 - Optimize hot paths
-
-### Risk: FFI Complexity
-
-**Impact**: Medium - FFI layer adds complexity
-**Probability**: Low
-**Mitigation**:
-- Thorough testing of FFI functions
-- Memory safety checks
-- Document FFI contract clearly
-- Provide example code
 
 ### Risk: JSON Schema Evolution
 
@@ -1164,12 +945,6 @@ Thu-Fri:  Final testing, bug fixes, release prep
 - [ ] All graph/module tests passing
 
 ### Phase 4 Success
-- [ ] C FFI functions exposed and working
-- [ ] Dart bindings complete and tested
-- [ ] Example code demonstrating usage
-- [ ] All FFI tests passing
-
-### Phase 5 Success
 - [ ] Complete API documentation
 - [ ] Migration guide for custom nodes
 - [ ] Example applications
@@ -1177,8 +952,8 @@ Thu-Fri:  Final testing, bug fixes, release prep
 - [ ] No known bugs in final testing
 
 ### Overall Success Criteria
-- ✅ UI can query port metadata without instantiating temporary nodes
 - ✅ Graphs save and restore with complete port configuration
+- ✅ UI tools can query port metadata from running nodes
 - ✅ Backward compatible with existing graphs
 - ✅ Thread-safe for concurrent queries
 - ✅ Well documented with examples
@@ -1191,7 +966,6 @@ Thu-Fri:  Final testing, bug fixes, release prep
 ### Team Composition
 - **Lead Developer** (1): Architecture, coordination, critical paths
 - **Core Developers** (1-2): Implementation of core functionality
-- **FFI Developer** (1): C API and language bindings
 - **QA Engineer** (1): Testing, validation
 - **Documentation Writer** (0.5): Guides, migration docs
 - **Architect** (0.5, part-time): Design reviews, decisions
@@ -1200,7 +974,6 @@ Thu-Fri:  Final testing, bug fixes, release prep
 - C++20 compiler (existing)
 - nlohmann/json library (existing)
 - GoogleTest framework (existing)
-- Dart FFI tooling (existing)
 - Documentation tools (Doxygen, Markdown)
 
 ### Dependencies
@@ -1220,18 +993,16 @@ The unified **Node Metadata API** provides a comprehensive solution to two criti
 ✅ **Single Source of Truth**: Port metadata defined once, used everywhere
 ✅ **Backward Compatible**: Old graphs still load, new features optional
 ✅ **Extensible**: Custom metadata supported for future enhancements
-✅ **Well-Defined**: Clear JSON schema and C API contract
-✅ **Tooling-Friendly**: Supports visual editors, code generation, validation
+✅ **Well-Defined**: Clear JSON schema for port metadata
+✅ **Tooling-Friendly**: Supports visual editors and introspection
 
 ### Timeline
-**Total Estimated Effort**: 8 weeks (2 months)
+**Total Estimated Effort**: 5-6 weeks
 **Phase Breakdown**:
 - Phase 1: Foundation (2 weeks)
 - Phase 2: Node API (2 weeks)
 - Phase 3: Graph/Module (1 week)
-- Phase 4: FFI/Bindings (1.5 weeks)
-- Phase 5: Documentation (1 week)
-- Buffer: 0.5 weeks
+- Phase 4: Documentation & Polish (1 week)
 
 This phased approach allows for:
 - Early validation of core concepts (Phase 1)
