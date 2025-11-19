@@ -175,3 +175,115 @@ TEST(NodeTest, WrapFunctions)
     ASSERT_EQ(return_node.GetOutputPorts().size(), 1);
     ASSERT_EQ(return_ref_node.GetOutputPorts().size(), 2);
 }
+
+struct CustomSerializingNode : public Node
+{
+    CustomSerializingNode() : Node(UUID{}, TypeName_v<CustomSerializingNode>, "CustomNode", test::env) {}
+
+    void Compute() override {}
+
+    template<typename T>
+    void AddInput(std::string_view key, const std::string& caption, SharedNodeData data = nullptr)
+    {
+        return Node::AddInput<T>(key, caption, std::move(data));
+    }
+
+    template<typename T>
+    void AddOutput(std::string_view key, const std::string& caption, SharedNodeData data = nullptr)
+    {
+        return Node::AddOutput<T>(key, caption, std::move(data));
+    }
+
+    json SaveInputs() const override
+    {
+        json inputs_json = json::object();
+        for (const auto& [key, port] : GetInputPorts())
+        {
+            inputs_json[std::string(key)] = {
+                {"caption", port->GetCaption()},
+                {"type", port->GetDataType()},
+                {"required", port->IsRequired()},
+                {"has_default", port->GetData() != nullptr},
+            };
+        }
+        return inputs_json;
+    }
+};
+
+TEST(NodeTest, SerializeToJSON)
+{
+    NodeTest::TestNode node;
+    node.SetName("MyTestNode");
+
+    // Add several input ports with different configurations
+    node.AddInput<int>("input_no_default", "Integer Input");
+    node.AddInput<float>("input_with_default", "Float Input", MakeNodeData<float>(3.14f));
+    node.AddInput<std::string>("input_string", "String Input", MakeNodeData<std::string>("hello"));
+
+    // Add several output ports
+    node.AddOutput<int>("output_result", "Result Output");
+    node.AddOutput<bool>("output_status", "Status Output", MakeNodeData<bool>(true));
+    node.AddOutput<std::string>("output_message", "Message Output");
+
+    // Serialize to JSON
+    json node_json = node.Save();
+
+    // Print the JSON
+    std::cout << "\n=== Base Node Serialization (No Input Serialization) ===" << std::endl;
+    std::cout << "Inputs: " << node_json["inputs"] << std::endl;
+    std::cout << "Note: inputs is null because base Node::SaveInputs() returns empty" << std::endl;
+    std::cout << std::endl;
+
+    // Verify basic structure
+    ASSERT_TRUE(node_json.contains("id"));
+    ASSERT_TRUE(node_json.contains("class"));
+    ASSERT_TRUE(node_json.contains("name"));
+    ASSERT_TRUE(node_json.contains("inputs"));
+
+    ASSERT_EQ(node_json["class"], "NodeTest::TestNode");
+    ASSERT_EQ(node_json["name"], "MyTestNode");
+}
+
+TEST(NodeTest, SerializeToJSONWithCustomSerialization)
+{
+    CustomSerializingNode node;
+    node.SetName("CustomSerializingNode");
+
+    // Add several input ports with different configurations
+    node.AddInput<int>("input_no_default", "Integer Input");
+    node.AddInput<float>("input_with_default", "Float Input", MakeNodeData<float>(3.14f));
+    node.AddInput<std::string>("input_string", "String Input", MakeNodeData<std::string>("hello"));
+
+    // Add several output ports
+    node.AddOutput<int>("output_result", "Result Output");
+    node.AddOutput<bool>("output_status", "Status Output", MakeNodeData<bool>(true));
+    node.AddOutput<std::string>("output_message", "Message Output");
+
+    // Serialize to JSON
+    json node_json = node.Save();
+
+    // Print the JSON
+    std::cout << "\n=== Custom Node Serialization (With Input Serialization) ===" << std::endl;
+    std::cout << node_json.dump(2) << std::endl;
+    std::cout << "================================================\n" << std::endl;
+
+    // Verify structure with custom serialization
+    ASSERT_TRUE(node_json.contains("id"));
+    ASSERT_TRUE(node_json.contains("class"));
+    ASSERT_TRUE(node_json.contains("name"));
+    ASSERT_TRUE(node_json.contains("inputs"));
+    ASSERT_NE(node_json["inputs"], nullptr);
+
+    ASSERT_EQ(node_json["class"], "CustomSerializingNode");
+    ASSERT_EQ(node_json["name"], "CustomSerializingNode");
+
+    // Verify input serialization
+    ASSERT_TRUE(node_json["inputs"].contains("input_no_default"));
+    ASSERT_TRUE(node_json["inputs"].contains("input_with_default"));
+    ASSERT_TRUE(node_json["inputs"].contains("input_string"));
+
+    // Check that defaults were tracked
+    ASSERT_FALSE(node_json["inputs"]["input_no_default"]["has_default"]);
+    ASSERT_TRUE(node_json["inputs"]["input_with_default"]["has_default"]);
+    ASSERT_TRUE(node_json["inputs"]["input_string"]["has_default"]);
+}
