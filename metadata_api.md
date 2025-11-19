@@ -9,7 +9,7 @@ This document outlines a comprehensive development plan for introducing a unifie
 
 By implementing a single unified metadata system, we solve both problems with a consistent, extensible API that serves as the "contract" between node implementations, serialization, UI tooling, and validation systems.
 
-**Estimated Total Effort**: 5-6 weeks across 3 phases
+**Estimated Total Effort**: 6-7 weeks across 4 phases
 **Risk Level**: Medium (introduces new API surface, changes serialization format)
 **Priority**: High (critical for production use)
 
@@ -292,6 +292,203 @@ struct PortDefinitions {
     static PortDefinitions FromJSON(const json& j);
 };
 ```
+
+### Constraint Handling & Validation
+
+#### Constraint Definitions
+
+Constraints are optional metadata that describe validation rules for port data. They are stored as JSON objects in `PortMetadata::constraints`. The following constraint types are supported:
+
+**Numeric Constraints** (for `int`, `float`, `double`):
+```json
+{
+  "min": 0,
+  "max": 100,
+  "step": 5
+}
+```
+
+**String Constraints** (for `std::string`):
+```json
+{
+  "min_length": 1,
+  "max_length": 256,
+  "pattern": "^[a-zA-Z0-9_]+$"
+}
+```
+
+**Enumeration Constraints** (for any type):
+```json
+{
+  "allowed_values": ["option1", "option2", "option3"]
+}
+```
+
+**Size Constraints** (for collections):
+```json
+{
+  "min_items": 1,
+  "max_items": 100
+}
+```
+
+**Custom Constraints** (extensible for node-specific rules):
+```json
+{
+  "custom_rule_name": "custom_value",
+  "description": "Explanation of constraint"
+}
+```
+
+#### Setting Constraints
+
+Constraints are defined at port creation time and are immutable after creation. There are two ways to set constraints:
+
+**1. At Port Creation** (Recommended):
+```cpp
+// In Node subclass constructor
+void AddInputWithConstraints(std::string_view key,
+                            const std::string& caption,
+                            std::string_view type,
+                            SharedNodeData data,
+                            const json& constraints);
+```
+
+**Example**:
+```cpp
+AddInputWithConstraints("vbr", "Variable Bitrate", "int",
+                       MakeNodeData<int>(128),
+                       json{
+                           {"min", 0},
+                           {"max", 320},
+                           {"step", 1},
+                           {"description", "Audio bitrate in kbps"}
+                       });
+```
+
+**2. Post-Creation via Port API**:
+```cpp
+// In Node subclass
+void ConfigureConstraints() {
+    if (auto port = GetInputPort("quality_level")) {
+        port->SetConstraints(json{
+            {"allowed_values", {"low", "medium", "high"}},
+            {"description", "Output quality level"}
+        });
+    }
+}
+```
+
+#### Constraint Application & Validation
+
+Constraints serve two purposes:
+
+**1. UI Validation** (Client-side):
+- UI tools read constraints from `GetInputPortMetadata()`
+- Generate appropriate input controls (sliders for range, dropdowns for enums, etc.)
+- Enforce constraints before allowing value submission
+- Display error messages for constraint violations
+
+**2. Runtime Validation** (Server-side, optional):
+Nodes can optionally validate input data against constraints before computation:
+
+```cpp
+class AudioCodecNode : public Node {
+  protected:
+    void Compute() override {
+        // Get input with optional constraint validation
+        auto vbr = GetInputData<int>("vbr");
+
+        // Manual validation against constraints
+        if (!ValidateConstraints("vbr", vbr)) {
+            throw std::invalid_argument("VBR constraint violation");
+        }
+
+        // ... continue with computation
+    }
+
+  private:
+    bool ValidateConstraints(const std::string& port_key,
+                            const SharedNodeData& data) const {
+        auto metadata = GetInputPortMetadata(port_key);
+        auto constraints = metadata["constraints"];
+
+        if (constraints.is_null()) {
+            return true;  // No constraints
+        }
+
+        // Type-specific validation logic
+        if (constraints.contains("min")) {
+            auto value = data->Get<int>();
+            if (value < constraints["min"].get<int>()) {
+                return false;
+            }
+        }
+
+        if (constraints.contains("max")) {
+            auto value = data->Get<int>();
+            if (value > constraints["max"].get<int>()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+```
+
+#### Constraint Serialization & Restoration
+
+Constraints are automatically persisted in the `port_definitions` section of saved graphs:
+
+```json
+{
+  "port_definitions": {
+    "inputs": [
+      {
+        "key": "vbr",
+        "caption": "Variable Bitrate",
+        "type": "int",
+        "constraints": {
+          "min": 0,
+          "max": 320,
+          "step": 1,
+          "description": "Audio bitrate in kbps"
+        }
+      }
+    ]
+  }
+}
+```
+
+When a graph is restored:
+1. Port definitions are read from JSON
+2. Constraints are loaded into the Port object
+3. Constraints become available via `GetInputPortMetadata()`
+4. UI tools can immediately access constraint information without re-instantiation
+
+#### Design Decisions
+
+**Why Constraints Are Optional**:
+- Not all ports need validation rules
+- Keeps port definition schema simple
+- Allows gradual adoption in existing nodes
+
+**Why Constraints Are Immutable**:
+- Prevents inconsistencies between serialized and runtime state
+- Simplifies validation logic (no need to handle dynamic changes)
+- Port definition is a contract that shouldn't change during execution
+
+**Why Validation Is Optional in Compute**:
+- Nodes may have complex validation logic specific to their domain
+- UI already enforces constraints on input
+- Server-side validation is defensive programming best practice but adds overhead
+- Nodes can choose the validation strategy that fits their use case
+
+**Constraint Scope**:
+- Constraints apply to port data values, not to connections
+- A port can be `required` (must be connected) AND have constraints on its data
+- Constraint validation happens on data received via SetInputData, not at connection time
 
 ---
 
@@ -691,12 +888,24 @@ protected:
     virtual void RestoreInputDefaults(const json&);
 ```
 
-**2.5 Update FunctionNode** (`include/flow/core/FunctionNode.hpp`)
-- Ensure `ParseArguments()` populates port definitions
-- Ports automatically include constraints where applicable
+**2.5 Implement Constraint Handling**
+- Implement `AddInputWithConstraints()` and `AddOutputWithConstraints()` methods
+- Implement `Port::SetConstraints()` and `Port::GetConstraints()` methods
+- Constraints are stored in `Port::_constraints` as optional JSON
+- Constraints are serialized/deserialized as part of `port_definitions`
+- Constraints are immutable after port creation (can be set at creation or via Port API before graph runs)
+- Support constraint types: numeric (min/max/step), string (pattern/length), enumeration, custom
+- Document constraint best practices and validation patterns
 
-**2.6 Tests** (`tests/node_metadata_test.cpp`)
+**2.6 Update FunctionNode** (`include/flow/core/FunctionNode.hpp`)
+- Ensure `ParseArguments()` populates port definitions
+- Add support for auto-generating constraints where applicable (e.g., numeric types could have default min/max)
+- Provide virtual `ConfigurePortConstraints()` method for derived classes to override
+- Example: function parameters with numeric types could suggest constraint ranges
+
+**2.7 Tests** (`tests/node_metadata_test.cpp`, `tests/constraint_test.cpp`)
 ```cpp
+// Node Metadata Tests
 TEST(NodeMetadata, SaveIncludesPortDefinitions) { }
 TEST(NodeMetadata, RestoreValidatesPortDefinitions) { }
 TEST(NodeMetadata, GetInputPortMetadata) { }
@@ -704,32 +913,54 @@ TEST(NodeMetadata, GetAllInputPortsMetadata) { }
 TEST(NodeMetadata, GetAllOutputPortsMetadata) { }
 TEST(NodeMetadata, BackwardCompatibilityWithOldFormat) { }
 TEST(NodeMetadata, CustomNodeDefaults) { }
+
+// Constraint Tests
+TEST(Constraint, SetConstraintsAtCreation) { }
+TEST(Constraint, SetConstraintsViaPort) { }
+TEST(Constraint, ConstraintsSerializedInPortDefinitions) { }
+TEST(Constraint, ConstraintsRestoredFromJSON) { }
+TEST(Constraint, NumericConstraints) { }
+TEST(Constraint, StringConstraints) { }
+TEST(Constraint, EnumerationConstraints) { }
+TEST(Constraint, CustomConstraints) { }
+TEST(Constraint, ConstraintImmutability) { }
 ```
 
 #### Files Modified
 - `include/flow/core/Node.hpp`
 - `src/Node.cpp`
+- `include/flow/core/Port.hpp`
+- `src/Port.cpp`
 - `include/flow/core/FunctionNode.hpp`
 - `src/FunctionNode.cpp`
 - `tests/node_metadata_test.cpp` (NEW)
+- `tests/constraint_test.cpp` (NEW)
 
 #### Testing Strategy
 - Test metadata generation for various node types
 - Test round-trip save/restore
 - Test backward compatibility with old JSON format
 - Test custom node implementations
+- Test constraint setting at port creation time
+- Test constraint setting via Port API
+- Test constraint serialization and restoration
+- Test constraint immutability (prevent modification after creation)
+- Test all constraint types (numeric, string, enum, custom)
+- Test constraint interactions with default values
 
-#### Estimated Effort: 1.5 weeks
-- Method implementations: 3 days
-- Serialization updates: 3 days
-- Tests: 2 days
+#### Estimated Effort: 2 weeks
+- Constraint infrastructure: 2 days
+- Method implementations: 2 days
+- Constraint handling: 2 days
+- Serialization updates: 2 days
+- Tests: 3 days
 - Documentation: 1 day
 
 ---
 
-### Phase 3: Graph & Module Updates (Week 5)
+### Phase 3: Graph & Module Updates (Weeks 5-6)
 
-**Goal**: Update Graph and Module serialization to leverage metadata
+**Goal**: Update Graph and Module serialization to leverage metadata; implement constraint validation
 
 #### Deliverables
 - [ ] Updated `Graph::Save()` / `Graph::Restore()`
@@ -772,14 +1003,16 @@ TEST(ModuleMetadata, EmbeddedGraphsPreserveMetadata) { }
 - Port definition validation
 - Migration from old format
 
-#### Estimated Effort: 1 week
+#### Estimated Effort: 2 weeks
 - Graph updates: 2 days
 - Module updates: 2 days
-- Tests: 2 days
+- Constraint validation: 1.5 days
+- Tests: 3 days
+- Documentation/polish: 1.5 days
 
 ---
 
-### Phase 4: Documentation & Polish (Week 6)
+### Phase 4: Documentation & Polish (Week 7)
 
 **Goal**: Complete documentation, examples, and final testing
 
@@ -854,26 +1087,32 @@ Wed-Thu:  Comprehensive unit tests
 Fri:      Documentation, code review
 ```
 
-### Week 3-4: Phase 2 - Node Metadata API
+### Week 3-4: Phase 2 - Node Metadata API & Constraints
 ```
 Mon-Tue:  Implement Node metadata query methods
 Wed-Thu:  Update Node::Save() and Node::Restore()
 Fri:      Add SaveInputDefaults() / RestoreInputDefaults() hooks
-Mon-Tue:  Update FunctionNode, handle constraints
-Wed:      Comprehensive node metadata tests
+
+Mon-Tue:  Implement constraint infrastructure
+Wed-Thu:  Implement AddInputWithConstraints/AddOutputWithConstraints
+Fri:      Implement Port constraint methods and serialization
+
+Mon:      Update FunctionNode for constraint support
+Tue-Wed:  Comprehensive node metadata and constraint tests
 Thu-Fri:  Code review, fixes, migration guide
 ```
 
-### Week 5: Phase 3 - Graph & Module
+### Week 5-6: Phase 3 - Graph & Module
 ```
-Mon-Tue:  Update Graph save/restore
+Mon-Tue:  Update Graph save/restore, constraint validation
 Wed:      Update Module save/restore
-Thu-Fri:  Tests, code review
+Thu:      Comprehensive graph and module tests
+Fri:      Code review, fixes
 ```
 
-### Week 6: Phase 4 - Documentation & Polish
+### Week 7: Phase 4 - Documentation & Polish
 ```
-Mon-Wed:  Complete documentation, migration guides, examples
+Mon-Wed:  Complete documentation, constraint guides, examples
 Thu-Fri:  Final testing, bug fixes, release prep
 ```
 
@@ -997,11 +1236,11 @@ The unified **Node Metadata API** provides a comprehensive solution to two criti
 ✅ **Tooling-Friendly**: Supports visual editors and introspection
 
 ### Timeline
-**Total Estimated Effort**: 5-6 weeks
+**Total Estimated Effort**: 6-7 weeks
 **Phase Breakdown**:
 - Phase 1: Foundation (2 weeks)
-- Phase 2: Node API (2 weeks)
-- Phase 3: Graph/Module (1 week)
+- Phase 2: Node API & Constraints (2 weeks)
+- Phase 3: Graph/Module (2 weeks)
 - Phase 4: Documentation & Polish (1 week)
 
 This phased approach allows for:
