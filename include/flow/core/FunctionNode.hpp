@@ -13,12 +13,21 @@
 
 FLOW_NAMESPACE_BEGIN
 
+using json = nlohmann::json;
+
+template<typename T>
+concept JsonSerialisable = requires(T t) {
+    {
+        json(t)
+    };
+};
+
 /**
  * @brief Extract function signature information at compile-time
  *
  * @tparam F Function type to analyze
  */
-template<concepts::Function F>
+template<class F>
 struct FunctionTraits;
 
 /**
@@ -35,6 +44,26 @@ struct FunctionTraits<R(Args...)>
     static constexpr std::size_t arg_count = sizeof...(Args);
 };
 
+template<typename R, typename C, typename... Args>
+struct FunctionTraits<R (C::*)(Args...)> : FunctionTraits<R(Args...)>
+{
+};
+
+template<typename R, typename C, typename... Args>
+struct FunctionTraits<R (C::*)(Args...) const> : FunctionTraits<R(Args...)>
+{
+};
+
+template<class F>
+struct FunctionTraits : FunctionTraits<decltype(&F::operator())>
+{
+};
+
+template<typename R, typename... Args>
+struct FunctionTraits<std::function<R(Args...)>> : FunctionTraits<R(Args...)>
+{
+};
+
 /**
  * @brief Node that wraps a function into the graph system
  *
@@ -43,10 +72,9 @@ struct FunctionTraits<R(Args...)>
  *          - Output port named "return" for the return value
  *          - Reference parameters become output ports
  *
- * @tparam F Function type (e.g., int(float, bool))
  * @tparam Func Pointer to concrete function implementation
  */
-template<concepts::Function F, std::add_pointer_t<std::remove_pointer_t<F>> Func>
+template<auto Func>
 class FunctionNode : public Node
 {
     /// Helper to decay tuple types while preserving references
@@ -63,7 +91,8 @@ class FunctionNode : public Node
     using decayed_tuple_t = typename decayed_tuple<Tuple>::type;
 
   protected:
-    using traits   = FunctionTraits<std::remove_pointer_t<F>>;
+    using F        = decltype(Func);
+    using traits   = FunctionTraits<std::remove_pointer_t<std::decay_t<F>>>;
     using output_t = typename traits::ReturnType;
     using arg_ts   = typename traits::ArgTypes;
 
@@ -128,18 +157,17 @@ class FunctionNode : public Node
     template<int... Idx>
     json SaveInputs(std::integer_sequence<int, Idx...>) const
     {
-        json inputs_json;
+        json inputs_json = json::object();
 
         const auto& inputs = GetInputPorts();
         (
             [&, this] {
-                if constexpr (!std::is_convertible_v<arg_t<Idx>, json>)
+                if constexpr (!JsonSerialisable<arg_t<Idx>>)
                 {
                     return;
                 }
                 else
                 {
-
                     const auto& key = _arg_names[Idx];
                     if (!inputs.contains(IndexableName{key}))
                     {
@@ -149,6 +177,10 @@ class FunctionNode : public Node
                     if (auto x = GetInputData<arg_t<Idx>>(IndexableName{key}))
                     {
                         inputs_json[key] = x->Get();
+                    }
+                    else if (auto y = GetInputData<std::decay_t<arg_t<Idx>>>(IndexableName{key}))
+                    {
+                        inputs_json[key] = y->Get();
                     }
                 }
             }(),
@@ -179,7 +211,7 @@ class FunctionNode : public Node
   public:
     explicit FunctionNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env,
                           std::vector<std::string> arg_names = {})
-        : Node(uuid, TypeName_v<FunctionNode<F, Func>>, name, std::move(env)), _func{Func}
+        : Node(uuid, TypeName_v<FunctionNode<Func>>, name, std::move(env)), _func{Func}
     {
         ParseArguments(std::make_integer_sequence<int, std::tuple_size_v<arg_ts>>{}, arg_names);
 
@@ -230,26 +262,32 @@ class FunctionNode : public Node
     }
 
   private:
-    std::add_pointer_t<std::remove_pointer_t<F>> _func;
+    std::decay_t<F> _func;
     static inline std::array<std::string, std::tuple_size_v<arg_ts>> _arg_names{""};
     decayed_tuple_t<arg_ts> _arguments;
 };
 
-template<concepts::Function F, F Func, typename... ArgNames>
+template<auto Func>
 void NodeFactory::RegisterFunction(const std::string& category, const std::string& name,
                                    std::vector<std::string> arg_names)
 {
-    constexpr std::string_view class_name = TypeName_v<FunctionNode<F, Func>>;
+    constexpr std::string_view class_name = TypeName_v<FunctionNode<Func>>;
 
     _constructor_map.emplace(
         class_name,
         [names = std::move(arg_names)](const std::string& uuid_str, const std::string& name, std::shared_ptr<Env> env) {
-            return new FunctionNode<F, Func>(uuid_str, name, std::move(env), std::move(names));
+            return new FunctionNode<Func>(uuid_str, name, std::move(env), std::move(names));
         });
     _category_map.emplace(category, class_name);
     _friendly_names.emplace(class_name, name);
 
     OnNodeClassRegistered.Broadcast(std::string_view{class_name});
+}
+
+template<auto Func>
+SharedNode NodeFactory::CreateFunctionNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env)
+{
+    return NodeFactory::CreateNode<FunctionNode<Func>>(uuid, name, env);
 }
 
 FLOW_NAMESPACE_END

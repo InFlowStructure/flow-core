@@ -52,7 +52,7 @@ struct TestNode : public Node
 };
 } // namespace NodeTest
 
-TEST(NodeTest, Construction)
+TEST(Node, Construction)
 {
     ASSERT_NO_THROW(NodeTest::TestNode());
 
@@ -62,7 +62,7 @@ TEST(NodeTest, Construction)
     EXPECT_EQ(node.GetEnv(), test::env);
 }
 
-TEST(NodeTest, AddInputPorts)
+TEST(Node, AddInputPorts)
 {
     NodeTest::TestNode node;
 
@@ -98,7 +98,7 @@ TEST(NodeTest, AddInputPorts)
     }
 }
 
-TEST(NodeTest, AddOutputPorts)
+TEST(Node, AddOutputPorts)
 {
     NodeTest::TestNode node;
 
@@ -134,7 +134,7 @@ TEST(NodeTest, AddOutputPorts)
     }
 }
 
-TEST(NodeTest, Compute)
+TEST(Node, Compute)
 {
     NodeTest::TestNode node;
     node.AddInput<int>("in", "");
@@ -160,20 +160,36 @@ struct TestData
 };
 void custom_type_test_method(const TestData&) {}
 
-#define DECLARE_FUNCTION_NODE(f) FunctionNode<decltype(f), f> f##_node({}, #f, test::env);
-
-TEST(NodeTest, WrapFunctions)
+struct TestFunctor
 {
-    DECLARE_FUNCTION_NODE(void_test_method);
-    DECLARE_FUNCTION_NODE(return_test_method);
-    DECLARE_FUNCTION_NODE(return_ref_test_method);
-    DECLARE_FUNCTION_NODE(custom_type_test_method);
+    void operator()(int) {}
+};
+
+TEST(Node, WrapFunctions)
+{
+    FunctionNode<void_test_method> void_test_method_node({}, "void_test_method", test::env);
+    FunctionNode<return_test_method> return_test_method_node({}, "return_test_method", test::env);
+    FunctionNode<return_ref_test_method> return_ref_test_method_node({}, "return_ref_test_method", test::env);
+    FunctionNode<custom_type_test_method> custom_type_test_method_node({}, "custom_type_test_method", test::env);
+    FunctionNode<TestFunctor{}> functor_node({}, "functor", test::env);
 
     ASSERT_EQ(void_test_method_node.GetInputPorts().size(), 1);
     ASSERT_EQ(return_test_method_node.GetInputPorts().size(), 1);
     ASSERT_TRUE(return_ref_test_method_node.GetInputPorts().empty());
+    ASSERT_EQ(custom_type_test_method_node.GetInputPorts().size(), 1);
+    ASSERT_EQ(functor_node.GetInputPorts().size(), 1);
 
     ASSERT_TRUE(void_test_method_node.GetOutputPorts().empty());
     ASSERT_EQ(return_test_method_node.GetOutputPorts().size(), 1);
     ASSERT_EQ(return_ref_test_method_node.GetOutputPorts().size(), 2);
+    ASSERT_TRUE(custom_type_test_method_node.GetOutputPorts().empty());
+    ASSERT_TRUE(functor_node.GetOutputPorts().empty());
+}
+
+TEST(Node, Save)
+{
+    NodeTest::TestNode node;
+
+    auto x = node.Save();
+    EXPECT_EQ(x, json({{"id", node.ID()}, {"class", node.GetClass()}, {"name", node.GetName()}, {"inputs", {}}}) );
 }

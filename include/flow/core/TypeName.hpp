@@ -73,9 +73,6 @@ constexpr std::string_view get_typename() noexcept
 template<typename T>
 struct TypeName
 {
-    /**
-     * @brief The string representation of the given type.
-     */
     static constexpr std::string_view value = detail::get_typename<T>();
 
     static constexpr bool is_reference = false;

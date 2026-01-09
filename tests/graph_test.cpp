@@ -2,6 +2,7 @@
 // All rights reserved.
 
 #include "flow/core/Env.hpp"
+#include "flow/core/FunctionNode.hpp"
 #include "flow/core/Graph.hpp"
 #include "flow/core/Node.hpp"
 #include "flow/core/NodeData.hpp"
@@ -9,16 +10,18 @@
 
 #include <gtest/gtest.h>
 
+#include <functional>
+
 using namespace flow;
 
 namespace
 {
-auto factory = NodeFactory::Create();
-auto env     = Env::Create(factory);
+auto factory  = NodeFactory::Create();
+auto test_env = Env::Create(factory);
 
 struct TestNode : public Node
 {
-    TestNode() : Node(UUID{}, TypeName_v<TestNode>, "Test", env)
+    TestNode() : Node(UUID{}, TypeName_v<TestNode>, "Test", test_env)
     {
         AddInput<int>("in", "");
         AddInput<int>("other_in", "");
@@ -40,11 +43,11 @@ struct TestNode : public Node
 };
 } // namespace
 
-TEST(GraphTest, Construction) { ASSERT_NO_THROW(auto graph = std::make_shared<Graph>("test", env)); }
+TEST(GraphTest, Construction) { ASSERT_NO_THROW(auto graph = std::make_shared<Graph>("test", test_env)); }
 
 TEST(GraphTest, AddNodes)
 {
-    auto graph = std::make_shared<Graph>("test", env);
+    auto graph = std::make_shared<Graph>("test", test_env);
     auto node1 = std::make_shared<::TestNode>();
     auto node2 = std::make_shared<::TestNode>();
 
@@ -61,7 +64,7 @@ TEST(GraphTest, AddNodes)
 
 TEST(GraphTest, RemoveNodes)
 {
-    auto graph = std::make_shared<Graph>("test", env);
+    auto graph = std::make_shared<Graph>("test", test_env);
     auto node1 = std::make_shared<::TestNode>();
     auto node2 = std::make_shared<::TestNode>();
 
@@ -81,7 +84,7 @@ TEST(GraphTest, RemoveNodes)
 
 TEST(GraphTest, ConnectNodes)
 {
-    auto graph = std::make_shared<Graph>("test", env);
+    auto graph = std::make_shared<Graph>("test", test_env);
     auto node1 = std::make_shared<::TestNode>();
     auto node2 = std::make_shared<::TestNode>();
 
@@ -97,7 +100,7 @@ TEST(GraphTest, ConnectNodes)
 
 TEST(GraphTest, DisconnectNodes)
 {
-    auto graph = std::make_shared<Graph>("test", env);
+    auto graph = std::make_shared<Graph>("test", test_env);
     auto node1 = std::make_shared<::TestNode>();
     auto node2 = std::make_shared<::TestNode>();
 
@@ -114,7 +117,7 @@ TEST(GraphTest, DisconnectNodes)
 
 TEST(GraphTest, PropagateConnectionData)
 {
-    auto graph = std::make_shared<Graph>("test", env);
+    auto graph = std::make_shared<Graph>("test", test_env);
     auto node1 = std::make_shared<::TestNode>();
     auto node2 = std::make_shared<::TestNode>();
 
@@ -130,7 +133,7 @@ TEST(GraphTest, PropagateConnectionData)
     EXPECT_NE(node1->GetOutputData<int>("out"), nullptr);
     EXPECT_EQ(node1->GetOutputData<int>("other_out"), nullptr);
 
-    env->Wait();
+    test_env->Wait();
 
     EXPECT_NE(node2->GetInputData<int>("in"), nullptr);
     EXPECT_EQ(node2->GetInputData<int>("other_in"), nullptr);
@@ -139,7 +142,7 @@ TEST(GraphTest, PropagateConnectionData)
 
     ASSERT_NO_THROW(node1->SetInputData("other_in", MakeNodeData<int>(202)));
 
-    env->Wait();
+    test_env->Wait();
 
     EXPECT_NE(node2->GetInputData<int>("in"), nullptr);
     EXPECT_NE(node2->GetInputData<int>("other_in"), nullptr);
@@ -150,7 +153,7 @@ TEST(GraphTest, PropagateConnectionData)
 
 TEST(GraphTest, DistinguishNodes)
 {
-    auto graph = std::make_shared<Graph>("test", env);
+    auto graph = std::make_shared<Graph>("test", test_env);
     auto node1 = std::make_shared<::TestNode>();
     auto node2 = std::make_shared<::TestNode>();
     auto node3 = std::make_shared<::TestNode>();

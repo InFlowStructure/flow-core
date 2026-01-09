@@ -437,9 +437,27 @@ template<concepts::Reference T>
 }
 
 template<typename T>
-[[nodiscard]] constexpr TSharedNodeData<T> CastNodeData(const SharedNodeData& value)
+[[nodiscard]] constexpr TSharedNodeData<T> StaticCastNodeData(const SharedNodeData& value)
+{
+    return std::static_pointer_cast<NodeData<T>>(value);
+}
+
+template<typename T>
+[[nodiscard]] constexpr TSharedNodeData<T> DynamicCastNodeData(const SharedNodeData& value)
 {
     return std::dynamic_pointer_cast<NodeData<T>>(value);
+}
+
+template<typename T>
+[[nodiscard]] constexpr TSharedNodeData<T> ReinterpretCastNodeData(const SharedNodeData& value)
+{
+    return std::reinterpret_pointer_cast<NodeData<T>>(value);
+}
+
+template<typename T>
+[[deprecated]] [[nodiscard]] constexpr TSharedNodeData<T> CastNodeData(const SharedNodeData& value)
+{
+    return DynamicCastNodeData<T>(value);
 }
 
 FLOW_NAMESPACE_END

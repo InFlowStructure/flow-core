@@ -2,6 +2,7 @@
 // All rights reserved.
 
 #include "flow/core/Port.hpp"
+#include "Port.hpp"
 
 FLOW_NAMESPACE_BEGIN
 
