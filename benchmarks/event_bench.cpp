@@ -11,7 +11,7 @@
 #include <array>
 #include <string>
 
-static void EventDispatcher_Broadcast(benchmark::State& state)
+static void EventDispatcher_BroadcastBrutal(benchmark::State& state)
 {
     flow::EventDispatcher<> dispatcher;
     std::array<std::string, 1000> names;
@@ -28,4 +28,22 @@ static void EventDispatcher_Broadcast(benchmark::State& state)
     }
 }
 
-BENCHMARK(EventDispatcher_Broadcast);
+static void EventDispatcher_BroadcastRealistic(benchmark::State& state)
+{
+    flow::EventDispatcher<> dispatcher;
+    std::array<std::string, 10> names;
+
+    for (int i = 0; i < names.size(); ++i)
+    {
+        names[i] = "Event_" + std::to_string(i);
+        dispatcher.Bind(flow::IndexableName{names[i]}, [&] { ++i; });
+    }
+
+    for ([[maybe_unused]] const auto& _ : state)
+    {
+        dispatcher.Broadcast();
+    }
+}
+
+BENCHMARK(EventDispatcher_BroadcastBrutal);
+BENCHMARK(EventDispatcher_BroadcastRealistic);

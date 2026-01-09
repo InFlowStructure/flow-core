@@ -18,12 +18,13 @@ set(TEST_EXE flow_core_tests)
 add_executable(
   ${TEST_EXE}
 
+  data_test.cpp
   factory_test.cpp
   graph_test.cpp
   indexable_name_test.cpp
+  module_test.cpp
   node_test.cpp
   type_name_test.cpp
-  module_test.cpp
 )
 
 if(MSVC)

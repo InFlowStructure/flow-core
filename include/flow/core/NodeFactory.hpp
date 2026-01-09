@@ -33,6 +33,7 @@ class NodeFactory
 {
     using ConstructorCallback = std::function<void*(const UUID&, const std::string&, std::shared_ptr<Env>)>;
 
+  protected:
     NodeFactory() = default;
 
   public:
@@ -61,7 +62,7 @@ class NodeFactory
     template<concepts::NodeType T>
     void UnregisterNodeClass(const std::string& category);
 
-    template<concepts::Function F, F Func, typename... ArgNames>
+    template<auto Func>
     void RegisterFunction(const std::string& category, const std::string& name,
                           std::vector<std::string> arg_names = {});
 
@@ -83,6 +84,15 @@ class NodeFactory
      */
     SharedNode CreateNode(const std::string& class_name, const UUID& uuid, const std::string& name,
                           std::shared_ptr<Env> env);
+
+    template<concepts::NodeType T>
+    SharedNode CreateNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env)
+    {
+        return CreateNode(std::string{TypeName_v<T>}, uuid, name, env);
+    }
+
+    template<auto Func>
+    SharedNode CreateFunctionNode(const UUID& uuid, const std::string& name, std::shared_ptr<Env> env);
 
     const CategoryMap& GetCategories() const;
 
@@ -329,7 +339,7 @@ void NodeFactory::RegisterCompleteConversion()
 template<typename T>
 TSharedNodeData<T> NodeFactory::Convert(const SharedNodeData& data)
 {
-    return CastNodeData<T>(_conversion_registry.Convert(data, TypeName_v<T>));
+    return DynamicCastNodeData<T>(_conversion_registry.Convert(data, TypeName_v<T>));
 }
 
 template<typename To>

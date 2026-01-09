@@ -4,8 +4,11 @@
 #include <benchmark/benchmark.h>
 
 #include <flow/core/Env.hpp>
+#include <flow/core/FunctionNode.hpp>
 #include <flow/core/Graph.hpp>
 #include <flow/core/NodeFactory.hpp>
+
+#include <cmath>
 
 static void Graph_Construct(benchmark::State& state)
 {

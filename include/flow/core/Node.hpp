@@ -148,7 +148,7 @@ class Node
     template<typename T>
     [[nodiscard]] auto GetInputData(const IndexableName& key) const noexcept
     {
-        return CastNodeData<T>(this->GetInputData(key));
+        return DynamicCastNodeData<T>(this->GetInputData(key));
     }
 
     /**
@@ -163,7 +163,7 @@ class Node
     template<typename T>
     [[nodiscard]] auto GetOutputData(const IndexableName& key) const noexcept
     {
-        return CastNodeData<T>(this->GetOutputData(key));
+        return DynamicCastNodeData<T>(this->GetOutputData(key));
     }
 
     /**

@@ -37,7 +37,7 @@ class TypeRegistry
     template<typename From, typename To>
     static SharedNodeData Convert(const SharedNodeData& data)
     {
-        if (auto from_data = CastNodeData<From>(data))
+        if (auto from_data = DynamicCastNodeData<From>(data))
         {
             if constexpr (std::is_rvalue_reference_v<To>)
             {
