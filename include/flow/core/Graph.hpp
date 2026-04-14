@@ -42,6 +42,10 @@ class Graph
      */
     [[nodiscard]] const UUID& ID() const noexcept { return _id; }
 
+    void Start();
+
+    void Stop();
+
     /**
      * @brief Runs compute on the source nodes of the graph, starting the flow.
      *
@@ -149,7 +153,7 @@ class Graph
      * @brief Check if the nodes can be connected
      */
     bool CanConnectNode(const UUID& start, const IndexableName& start_key, const UUID& end,
-                                  const IndexableName& end_key);
+                        const IndexableName& end_key);
 
     /**
      * @brief Connects 2 nodes by their IDs and Port keys.
@@ -191,20 +195,6 @@ class Graph
         return node && _nodes.contains(node->ID());
     }
 
-    /**
-     * @brief Convert graph state to JSON.
-     * @param j JSON object to store state in.
-     * @param g Graph to serialize.
-     */
-    friend void to_json(json& j, const Graph& g);
-
-    /**
-     * @brief Restore graph state from JSON.
-     * @param j JSON object containing serialized state.
-     * @param g Graph to restore state into.
-     */
-    friend void from_json(const json& j, Graph& g);
-
   protected:
     /**
      * @brief Propagates data through the connections of the given ID.
@@ -226,10 +216,10 @@ class Graph
     EventDispatcher<const SharedNode&> OnNodeRemoved;
 
     /// Event run when 2 nodes are connected.
-    EventDispatcher<const SharedConnection&> OnNodesConnected;
+    EventDispatcher<const SharedConnection&> OnConnectionAdded;
 
     /// Event run on Graph when a connection is removed.
-    EventDispatcher<const SharedConnection&> OnNodesDisconnected;
+    EventDispatcher<const SharedConnection&> OnConnectionRemoved;
 
   protected:
     /// Mutex for thread-safe node operations
@@ -250,5 +240,8 @@ class Graph
     /// Map of node UUIDs to node instances
     std::unordered_map<UUID, SharedNode> _nodes;
 };
+
+void to_json(json& j, const Graph& g);
+void from_json(const json& j, Graph& g);
 
 FLOW_NAMESPACE_END

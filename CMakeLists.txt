@@ -33,12 +33,6 @@ include(cmake/CPM.cmake)
 
 CPMAddPackage("gh:nlohmann/json@3.11.3")
 CPMAddPackage("gh:bshoshany/thread-pool@5.0.0")
-CPMAddPackage("gh:Lecrapouille/zipper@3.0.0")
-set_target_properties(zipper PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 
 # -----------------------------------------------------------------------------
 # Library
@@ -54,7 +48,6 @@ add_library(${PROJECT_NAME} SHARED
   src/Connections.cpp
   src/Env.cpp
   src/Graph.cpp
-  src/Module.cpp
   src/Node.cpp
   src/NodeFactory.cpp
   src/Port.cpp
@@ -97,10 +90,6 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   nlohmann_json::nlohmann_json
-)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE
-  zipper
 )
 
 # -----------------------------------------------------------------------------

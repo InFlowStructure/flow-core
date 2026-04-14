@@ -9,6 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "Graph.hpp"
 #include <algorithm>
 #include <set>
 
@@ -16,9 +17,20 @@ FLOW_NAMESPACE_BEGIN
 
 Graph::Graph(const std::string& name, std::shared_ptr<Env> env) : _name{name}, _env{std::move(env)} {}
 
+void Graph::Start()
+{
+    Visit([](auto&& node) { node->Start(); });
+}
+
+void Graph::Stop()
+{
+    Visit([](auto&& node) { node->Stop(); });
+}
+
 void Graph::Run()
 {
-    for (const auto& node : GetSourceNodes())
+    const auto& source_nodes = GetSourceNodes();
+    for (const auto& node : source_nodes)
     {
         GetEnv()->AddTask([=] {
             std::lock_guard _(*node);
@@ -201,11 +213,11 @@ std::vector<SharedNode> Graph::GetOrphanNodes() const
 }
 
 bool Graph::CanConnectNode(const UUID& start, const IndexableName& start_key, const UUID& end,
-                          const IndexableName& end_key)
+                           const IndexableName& end_key)
 {
     // Check if both nodes exist
     auto start_node = GetNode(start);
-    auto end_node = GetNode(end);
+    auto end_node   = GetNode(end);
     if (!(start_node && end_node)) return false;
 
     // Check if the start node has the specified output port
@@ -220,11 +232,11 @@ bool Graph::CanConnectNode(const UUID& start, const IndexableName& start_key, co
     if (end_port->IsConnected())
     {
         // Check if it's already connected to the same start port
-        auto conns = _connections.FindConnections(start, start_key);
+        auto conns      = _connections.FindConnections(start, start_key);
         auto found_conn = std::find_if(conns.begin(), conns.end(), [&](const auto& conn) {
             return conn->EndNodeID() == end && conn->EndPortKey() == end_key;
         });
-        
+
         // If already connected to the same ports, consider it as "can connect" (no-op)
         return found_conn != conns.end();
     }
@@ -269,14 +281,14 @@ SharedConnection Graph::ConnectNodes(const UUID& start_id, const IndexableName& 
 
     // Create the connection
     auto&& conn = _connections.Add(start_id, start_port->GetVarName(), end_id, end_port->GetVarName());
-    
+
     // Propagate existing data if any
     if (auto data = in_node->GetOutputData(start_port_key))
     {
         PropagateConnectionsData(start_id, start_port_key, std::move(data));
     }
 
-    OnNodesConnected.Broadcast(conn);
+    OnConnectionAdded.Broadcast(conn);
 
     return conn;
 }
@@ -295,7 +307,7 @@ void Graph::DisconnectNodes(const UUID& start_id, const IndexableName& start_por
         return;
     }
 
-    OnNodesDisconnected.Broadcast(*found_conn);
+    OnConnectionRemoved.Broadcast(*found_conn);
 
     _connections.Remove(start_id, end_id);
 
@@ -362,13 +374,13 @@ void to_json(json& j, const Graph& g)
 {
     std::vector<json> nodes_json;
 
-    for (const auto& [_, node] : g._nodes)
+    for (const auto& [_, node] : g.GetNodes())
     {
         nodes_json.push_back(node->Save());
     }
 
     std::vector<json> connections_json;
-    for (const auto& [_, connection] : g._connections)
+    for (const auto& [_, connection] : g.GetConnections())
     {
         connections_json.push_back(json{
             {"in_id", std::string(connection->StartNodeID())},
@@ -423,14 +435,14 @@ void from_json(const json& j, Graph& g)
     const json& connections = j["connections"];
     for (auto& el : connections.items())
     {
-        UUID inUUID(el.value()["in_id"]), outUUID(el.value()["out_id"]);
+        UUID id_in(el.value()["in_id"]), id_out(el.value()["out_id"]);
 
-        IndexableName inKey{
+        IndexableName key_in{
             std::string(el.value().contains("in_key") ? el.value()["in_key"] : el.value()["in_var_name"])};
-        IndexableName outKey{
+        IndexableName key_out{
             std::string(el.value().contains("out_key") ? el.value()["out_key"] : el.value()["out_var_name"])};
 
-        g.ConnectNodes(inUUID, inKey, outUUID, outKey);
+        g.ConnectNodes(id_in, key_in, id_out, key_out);
     }
 }
 

@@ -45,23 +45,6 @@ std::string ToString(const T& value)
     return std::to_string(value);
 }
 
-/**
- * @brief Function which returns a mapping of enum values to strings
- * @tparam T The enumeration type.
- *
- * @note This method MUST be overridden manually to account for custom enums.
- *
- * @returns A map of enum values to their respective string names.
- */
-template<concepts::Enumeration T>
-std::map<T, std::string> EnumToStringMap();
-
-template<concepts::Enumeration T>
-std::string ToString(const T& value)
-{
-    return EnumToStringMap<T>()[value];
-}
-
 template<typename T>
 std::string ToString(const std::unique_ptr<T>& value)
 {
@@ -99,21 +82,6 @@ std::string ToString(const T& value)
 {
     return ::flow::ToString<std::int64_t>(value.count());
 }
-
-template<typename T>
-struct EnumAsByte : std::false_type
-{
-};
-
-template<concepts::Enumeration T>
-struct EnumAsByte<T> : std::true_type
-{
-};
-
-template<concepts::Enumeration T>
-struct TypeName<T> : TypeName<EnumAsByte<T>>
-{
-};
 
 /**
  * @brief Interface for node data.

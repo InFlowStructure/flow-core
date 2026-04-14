@@ -59,12 +59,6 @@ template<typename T>
 concept Duration = type_traits::is_specialization_of_v<T, std::chrono::duration>;
 
 /**
- * @brief Requires type to be an enumeration
- */
-template<class E>
-concept Enumeration = std::is_enum_v<E>;
-
-/**
  * @brief Requires type to be a reference type
  */
 template<class R>

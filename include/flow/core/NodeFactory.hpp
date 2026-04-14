@@ -188,21 +188,6 @@ class NodeFactory
     template<typename From, typename To>
     bool IsConvertible() const;
 
-    /**
-     * @brief Alias type for the entry point function signature for modules.
-     */
-    using ModuleMethod_t = std::add_pointer_t<void FLOW_CORE_CALL(std::shared_ptr<NodeFactory>)>;
-
-    /**
-     * @brief The name of the entry point function for modules.
-     */
-    static constexpr const char* RegisterModuleFuncName = "RegisterModule";
-
-    /**
-     * @brief The name of the exit point function for modules.
-     */
-    static constexpr const char* UnregisterModuleFuncName = "UnregisterModule";
-
   protected:
     template<concepts::NodeType T>
     static void* ConstructorHelper(const std::string& uuid_str, const std::string& name, std::shared_ptr<Env> env);

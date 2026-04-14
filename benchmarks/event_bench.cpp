@@ -19,7 +19,7 @@ static void EventDispatcher_BroadcastBrutal(benchmark::State& state)
     for (int i = 0; i < names.size(); ++i)
     {
         names[i] = "Event_" + std::to_string(i);
-        dispatcher.Bind(flow::IndexableName{names[i]}, [&] { ++i; });
+        dispatcher.Bind(flow::IndexableName{names[i]}, [=] { benchmark::DoNotOptimize(i); });
     }
 
     for ([[maybe_unused]] const auto& _ : state)
@@ -36,7 +36,7 @@ static void EventDispatcher_BroadcastRealistic(benchmark::State& state)
     for (int i = 0; i < names.size(); ++i)
     {
         names[i] = "Event_" + std::to_string(i);
-        dispatcher.Bind(flow::IndexableName{names[i]}, [&] { ++i; });
+        dispatcher.Bind(flow::IndexableName{names[i]}, [=] { benchmark::DoNotOptimize(i); });
     }
 
     for ([[maybe_unused]] const auto& _ : state)
