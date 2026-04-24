@@ -38,6 +38,25 @@ struct TestNode : public Node
         }
     }
 };
+
+struct MultiTypeNode : public Node
+{
+    MultiTypeNode() : Node(UUID{}, TypeName_v<MultiTypeNode>, "MultiType", env)
+    {
+        AddInput<int>("int_in", "");
+        AddInput<bool>("bool_in", "");
+        AddInput<std::string>("string_in", "");
+        AddInput<double>("double_in", "");
+        AddInput<std::int64_t>("int64_in", "");
+        AddOutput<int>("int_out", "");
+        AddOutput<bool>("bool_out", "");
+        AddOutput<std::string>("string_out", "");
+        AddOutput<double>("double_out", "");
+        AddOutput<std::int64_t>("int64_out", "");
+    }
+
+    void Compute() override {}
+};
 } // namespace
 
 TEST(GraphTest, Construction) { ASSERT_NO_THROW(auto graph = std::make_shared<Graph>("test", env)); }
@@ -146,6 +165,60 @@ TEST(GraphTest, PropagateConnectionData)
 
     EXPECT_EQ(node2->GetInputData<int>("in")->Get(), 101);
     EXPECT_EQ(node2->GetInputData<int>("other_in")->Get(), 202);
+}
+
+TEST(GraphTest, CanConnectNode_AcceptsMatchingTypes)
+{
+    auto graph = std::make_shared<Graph>("test", env);
+    auto a     = std::make_shared<MultiTypeNode>();
+    auto b     = std::make_shared<MultiTypeNode>();
+    graph->AddNode(a);
+    graph->AddNode(b);
+
+    EXPECT_TRUE(graph->CanConnectNode(a->ID(), "int_out", b->ID(), "int_in"));
+    EXPECT_TRUE(graph->CanConnectNode(a->ID(), "string_out", b->ID(), "string_in"));
+    EXPECT_TRUE(graph->CanConnectNode(a->ID(), "bool_out", b->ID(), "bool_in"));
+    EXPECT_TRUE(graph->CanConnectNode(a->ID(), "double_out", b->ID(), "double_in"));
+}
+
+TEST(GraphTest, CanConnectNode_RejectsHeterogeneousTypes)
+{
+    auto graph = std::make_shared<Graph>("test", env);
+    auto a     = std::make_shared<MultiTypeNode>();
+    auto b     = std::make_shared<MultiTypeNode>();
+    graph->AddNode(a);
+    graph->AddNode(b);
+
+    EXPECT_FALSE(graph->CanConnectNode(a->ID(), "bool_out", b->ID(), "string_in"));
+    EXPECT_FALSE(graph->CanConnectNode(a->ID(), "string_out", b->ID(), "double_in"));
+    EXPECT_FALSE(graph->CanConnectNode(a->ID(), "double_out", b->ID(), "bool_in"));
+}
+
+TEST(GraphTest, CanConnectNode_AcceptsRegisteredConversion)
+{
+    // Env::Create pre-registers a complete conversion mesh across the integer
+    // family, so int -> int64_t must remain a valid link.
+    auto graph = std::make_shared<Graph>("test", env);
+    auto a     = std::make_shared<MultiTypeNode>();
+    auto b     = std::make_shared<MultiTypeNode>();
+    graph->AddNode(a);
+    graph->AddNode(b);
+
+    EXPECT_TRUE(graph->CanConnectNode(a->ID(), "int_out", b->ID(), "int64_in"));
+    EXPECT_TRUE(graph->CanConnectNode(a->ID(), "int64_out", b->ID(), "int_in"));
+}
+
+TEST(GraphTest, ConnectNodes_RejectsHeterogeneousPair)
+{
+    auto graph = std::make_shared<Graph>("test", env);
+    auto a     = std::make_shared<MultiTypeNode>();
+    auto b     = std::make_shared<MultiTypeNode>();
+    graph->AddNode(a);
+    graph->AddNode(b);
+
+    auto conn = graph->ConnectNodes(a->ID(), "bool_out", b->ID(), "string_in");
+    EXPECT_EQ(conn, nullptr);
+    EXPECT_EQ(graph->ConnectionCount(), 0);
 }
 
 TEST(GraphTest, DistinguishNodes)

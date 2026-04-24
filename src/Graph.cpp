@@ -216,6 +216,9 @@ bool Graph::CanConnectNode(const UUID& start, const IndexableName& start_key, co
     const auto end_port = end_node->GetInputPort(end_key);
     if (!end_port) return false;
 
+    if (!_env->GetFactory()->IsConvertible(start_port->GetDataType(), end_port->GetDataType()))
+        return false;
+
     // Check if the end port is already connected
     if (end_port->IsConnected())
     {
