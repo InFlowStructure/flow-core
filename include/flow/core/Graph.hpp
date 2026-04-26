@@ -149,7 +149,7 @@ class Graph
      * @brief Check if the nodes can be connected
      */
     bool CanConnectNode(const UUID& start, const IndexableName& start_key, const UUID& end,
-                                  const IndexableName& end_key);
+                        const IndexableName& end_key);
 
     /**
      * @brief Connects 2 nodes by their IDs and Port keys.
