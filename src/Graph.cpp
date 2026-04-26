@@ -201,11 +201,11 @@ std::vector<SharedNode> Graph::GetOrphanNodes() const
 }
 
 bool Graph::CanConnectNode(const UUID& start, const IndexableName& start_key, const UUID& end,
-                          const IndexableName& end_key)
+                           const IndexableName& end_key)
 {
     // Check if both nodes exist
     auto start_node = GetNode(start);
-    auto end_node = GetNode(end);
+    auto end_node   = GetNode(end);
     if (!(start_node && end_node)) return false;
 
     // Check if the start node has the specified output port
@@ -216,18 +216,17 @@ bool Graph::CanConnectNode(const UUID& start, const IndexableName& start_key, co
     const auto end_port = end_node->GetInputPort(end_key);
     if (!end_port) return false;
 
-    if (!_env->GetFactory()->IsConvertible(start_port->GetDataType(), end_port->GetDataType()))
-        return false;
+    if (!_env->GetFactory()->IsConvertible(start_port->GetDataType(), end_port->GetDataType())) return false;
 
     // Check if the end port is already connected
     if (end_port->IsConnected())
     {
         // Check if it's already connected to the same start port
-        auto conns = _connections.FindConnections(start, start_key);
+        auto conns      = _connections.FindConnections(start, start_key);
         auto found_conn = std::find_if(conns.begin(), conns.end(), [&](const auto& conn) {
             return conn->EndNodeID() == end && conn->EndPortKey() == end_key;
         });
-        
+
         // If already connected to the same ports, consider it as "can connect" (no-op)
         return found_conn != conns.end();
     }
@@ -272,7 +271,7 @@ SharedConnection Graph::ConnectNodes(const UUID& start_id, const IndexableName& 
 
     // Create the connection
     auto&& conn = _connections.Add(start_id, start_port->GetVarName(), end_id, end_port->GetVarName());
-    
+
     // Propagate existing data if any
     if (auto data = in_node->GetOutputData(start_port_key))
     {
