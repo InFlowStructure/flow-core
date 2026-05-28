@@ -33,6 +33,7 @@
 
 .vscode/
 build/
+build_test/
 
 # Cabin package build directory
 /cabin-out
