@@ -24,6 +24,7 @@ add_executable(
   node_test.cpp
   type_name_test.cpp
   module_test.cpp
+  uuid_test.cpp
 )
 
 if(MSVC)

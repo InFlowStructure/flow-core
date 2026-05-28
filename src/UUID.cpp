@@ -90,10 +90,16 @@ std::array<std::byte, 16> GenerateUUID()
 
 std::array<std::byte, 16> UUIDFromString(const std::string& uuid_str)
 {
-    auto uuid_cfstr = CFStringCreateWithCStringNoCopy(nullptr, uuid_str.c_str(), kCFStringEncodingASCII, nullptr);
+    auto uuid_cfstr = CFStringCreateWithCStringNoCopy(nullptr, uuid_str.c_str(), kCFStringEncodingASCII, kCFAllocatorNull);
     auto uuid       = CFUUIDCreateFromString(nullptr, uuid_cfstr);
-    auto bytes      = CFUUIDGetUUIDBytes(uuid);
+    if (uuid == nullptr)
+    {
+        CFRelease(uuid_cfstr);
+        throw std::invalid_argument("Bad UUID string: " + uuid_str);
+    }
+    auto bytes = CFUUIDGetUUIDBytes(uuid);
     CFRelease(uuid);
+    CFRelease(uuid_cfstr);
     return std::bit_cast<std::array<std::byte, 16>>(bytes);
 }
 #else
@@ -106,8 +112,11 @@ std::array<std::byte, 16> GenerateUUID()
 
 std::array<std::byte, 16> UUIDFromString(const std::string& uuid_str)
 {
-    uuid_t id;
-    uuid_parse(uuid_str.c_str(), id);
+    uuid_t id = {};
+    if (uuid_parse(uuid_str.c_str(), id) != 0)
+    {
+        throw std::invalid_argument("Bad UUID string: " + uuid_str);
+    }
     return std::bit_cast<std::array<std::byte, 16>>(id);
 }
 #endif
