@@ -25,6 +25,16 @@ add_executable(
   type_name_test.cpp
   module_test.cpp
   uuid_test.cpp
+  connection_test.cpp
+  connections_test.cpp
+  port_test.cpp
+  env_test.cpp
+  type_conversion_test.cpp
+  dispatch_test.cpp
+  factory_extended_test.cpp
+  node_serialization_test.cpp
+  module_errors_test.cpp
+  dispatch_edge_test.cpp
 )
 
 if(MSVC)
