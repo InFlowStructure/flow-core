@@ -51,9 +51,7 @@ TEST(ConnectionTest, LockUnlockWorksAsMutex)
 TEST(ConnectionTest, LockGuardCompatibility)
 {
     auto c = MakeConn();
-    ASSERT_NO_THROW({
-        std::lock_guard<Connection> _(*c);
-    });
+    ASSERT_NO_THROW({ std::lock_guard<Connection> _(*c); });
 }
 
 TEST(ConnectionTest, SaveProducesExpectedJson)
@@ -89,7 +87,7 @@ TEST(ConnectionTest, RestoreRoundTrips)
 
 TEST(ConnectionTest, ConcurrentLockContention)
 {
-    auto c        = MakeConn();
+    auto c = MakeConn();
     std::atomic<int> in_critical{0};
     std::atomic<int> max_in_critical{0};
 
@@ -97,16 +95,20 @@ TEST(ConnectionTest, ConcurrentLockContention)
         for (int i = 0; i < 100; ++i)
         {
             std::lock_guard<Connection> _(*c);
-            int cur = ++in_critical;
+            int cur  = ++in_critical;
             int prev = max_in_critical.load();
-            while (cur > prev && !max_in_critical.compare_exchange_weak(prev, cur)) {}
+            while (cur > prev && !max_in_critical.compare_exchange_weak(prev, cur))
+            {
+            }
             std::this_thread::yield();
             --in_critical;
         }
     };
 
     std::thread t1(worker), t2(worker), t3(worker);
-    t1.join(); t2.join(); t3.join();
+    t1.join();
+    t2.join();
+    t3.join();
 
     EXPECT_EQ(max_in_critical.load(), 1);
 }

@@ -60,7 +60,18 @@ TEST(TypeConversionTest, RegisteredConversionConvertsData)
 TEST(TypeConversionTest, BidirectionalConversion)
 {
     TypeRegistry r;
-    r.RegisterBidirectionalConversion<int, double>();
+    // MSVC's two-phase lookup chokes on TypeRegistry::RegisterBidirectionalConversion's
+    // default-arg `Convert<T,U>` (it's a private static template member of TypeRegistry),
+    // so pass explicit converters here instead of relying on the defaults.
+    auto to_double = [](const SharedNodeData& d) -> SharedNodeData {
+        if (auto from = CastNodeData<int>(d)) return MakeNodeData<double>(static_cast<double>(from->Get()));
+        return d;
+    };
+    auto to_int = [](const SharedNodeData& d) -> SharedNodeData {
+        if (auto from = CastNodeData<double>(d)) return MakeNodeData<int>(static_cast<int>(from->Get()));
+        return d;
+    };
+    r.RegisterBidirectionalConversion<int, double>(to_double, to_int);
 
     EXPECT_TRUE(r.IsConvertible(TypeName_v<int>, TypeName_v<double>));
     EXPECT_TRUE(r.IsConvertible(TypeName_v<double>, TypeName_v<int>));

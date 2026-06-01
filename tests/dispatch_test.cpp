@@ -37,8 +37,7 @@ struct CountingSource : public Node
 
 struct Identity : public Node
 {
-    Identity(std::shared_ptr<Env> env)
-        : Node(UUID{}, TypeName_v<Identity>, "id", std::move(env))
+    Identity(std::shared_ptr<Env> env) : Node(UUID{}, TypeName_v<Identity>, "id", std::move(env))
     {
         AddInput<int>("in", "");
         AddOutput<int>("out", "");
@@ -81,7 +80,14 @@ struct Sink : public Node
 
 struct ThrowingNode : public Node
 {
-    enum class Kind { StdEx, StdString, CString, Int, Other };
+    enum class Kind
+    {
+        StdEx,
+        StdString,
+        CString,
+        Int,
+        Other
+    };
     Kind kind;
 
     ThrowingNode(std::shared_ptr<Env> env, Kind k)
@@ -93,11 +99,16 @@ struct ThrowingNode : public Node
     {
         switch (kind)
         {
-            case Kind::StdEx:    throw std::runtime_error("boom");
-            case Kind::StdString: throw std::string("boom");
-            case Kind::CString:  throw "boom";
-            case Kind::Int:      throw 42;
-            case Kind::Other:    throw 3.14;
+        case Kind::StdEx:
+            throw std::runtime_error("boom");
+        case Kind::StdString:
+            throw std::string("boom");
+        case Kind::CString:
+            throw "boom";
+        case Kind::Int:
+            throw 42;
+        case Kind::Other:
+            throw 3.14;
         }
     }
 };
@@ -136,10 +147,10 @@ TEST_F(DispatchTest, RunPropagatesThroughChain)
     std::atomic<int> counter{0};
     std::atomic<int> last{0};
 
-    auto src   = std::make_shared<CountingSource>(env, counter);
-    auto mid1  = std::make_shared<Identity>(env);
-    auto mid2  = std::make_shared<Identity>(env);
-    auto sink  = std::make_shared<Sink>(env, last);
+    auto src  = std::make_shared<CountingSource>(env, counter);
+    auto mid1 = std::make_shared<Identity>(env);
+    auto mid2 = std::make_shared<Identity>(env);
+    auto sink = std::make_shared<Sink>(env, last);
 
     graph->AddNode(src);
     graph->AddNode(mid1);
@@ -242,7 +253,7 @@ TEST_F(DispatchTest, OnErrorCalledForStdExceptionInCompute)
 
 TEST_F(DispatchTest, OnErrorCalledForStringThrow)
 {
-    auto node = std::make_shared<ThrowingNode>(env, ThrowingNode::Kind::StdString);
+    auto node     = std::make_shared<ThrowingNode>(env, ThrowingNode::Kind::StdString);
     int err_count = 0;
     node->OnError.Bind("t", [&](const std::exception&) { ++err_count; });
     node->InvokeCompute();
@@ -251,7 +262,7 @@ TEST_F(DispatchTest, OnErrorCalledForStringThrow)
 
 TEST_F(DispatchTest, OnErrorCalledForCStringThrow)
 {
-    auto node = std::make_shared<ThrowingNode>(env, ThrowingNode::Kind::CString);
+    auto node     = std::make_shared<ThrowingNode>(env, ThrowingNode::Kind::CString);
     int err_count = 0;
     node->OnError.Bind("t", [&](const std::exception&) { ++err_count; });
     node->InvokeCompute();
@@ -260,7 +271,7 @@ TEST_F(DispatchTest, OnErrorCalledForCStringThrow)
 
 TEST_F(DispatchTest, OnErrorCalledForIntThrow)
 {
-    auto node = std::make_shared<ThrowingNode>(env, ThrowingNode::Kind::Int);
+    auto node     = std::make_shared<ThrowingNode>(env, ThrowingNode::Kind::Int);
     int err_count = 0;
     node->OnError.Bind("t", [&](const std::exception&) { ++err_count; });
     node->InvokeCompute();
@@ -269,7 +280,7 @@ TEST_F(DispatchTest, OnErrorCalledForIntThrow)
 
 TEST_F(DispatchTest, OnErrorCalledForUnknownThrow)
 {
-    auto node = std::make_shared<ThrowingNode>(env, ThrowingNode::Kind::Other);
+    auto node     = std::make_shared<ThrowingNode>(env, ThrowingNode::Kind::Other);
     int err_count = 0;
     node->OnError.Bind("t", [&](const std::exception&) { ++err_count; });
     node->InvokeCompute();

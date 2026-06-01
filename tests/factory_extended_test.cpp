@@ -43,7 +43,7 @@ TEST(FactoryExtendedTest, CreateUnknownClassReturnsNull)
 TEST(FactoryExtendedTest, RegisterFiresEvent)
 {
     auto factory = std::make_shared<NodeFactory>();
-    int hits = 0;
+    int hits     = 0;
     factory->OnNodeClassRegistered.Bind("h", [&](std::string_view) { ++hits; });
     factory->RegisterNodeClass<fx::AlphaNode>("Test");
     EXPECT_EQ(hits, 1);
@@ -108,7 +108,11 @@ TEST(FactoryExtendedTest, ParentCategoryPrefixesName)
     bool found = false;
     for (const auto& [cat_name, _] : factory->GetCategories())
     {
-        if (cat_name == "Root::Leaf") { found = true; break; }
+        if (cat_name == "Root::Leaf")
+        {
+            found = true;
+            break;
+        }
     }
     EXPECT_TRUE(found);
 

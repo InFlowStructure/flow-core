@@ -11,6 +11,27 @@
 
 using namespace flow;
 
+namespace
+{
+int PortableSetenv(const char* name, const char* value)
+{
+#ifdef _WIN32
+    return _putenv_s(name, value);
+#else
+    return setenv(name, value, 1);
+#endif
+}
+
+int PortableUnsetenv(const char* name)
+{
+#ifdef _WIN32
+    return _putenv_s(name, "");
+#else
+    return unsetenv(name);
+#endif
+}
+} // namespace
+
 TEST(EnvTest, CreatesWithDefaultSettings)
 {
     auto factory = std::make_shared<NodeFactory>();
@@ -32,16 +53,16 @@ TEST(EnvTest, GetVarReturnsValueWhenSet)
 {
     auto factory = std::make_shared<NodeFactory>();
     auto env     = Env::Create(factory);
-    ASSERT_EQ(setenv("FLOW_CORE_TEST_VAR", "hello", 1), 0);
+    ASSERT_EQ(PortableSetenv("FLOW_CORE_TEST_VAR", "hello"), 0);
     EXPECT_EQ(env->GetVar("FLOW_CORE_TEST_VAR"), "hello");
-    unsetenv("FLOW_CORE_TEST_VAR");
+    PortableUnsetenv("FLOW_CORE_TEST_VAR");
 }
 
 TEST(EnvTest, GetVarReturnsEmptyForMissing)
 {
     auto factory = std::make_shared<NodeFactory>();
     auto env     = Env::Create(factory);
-    unsetenv("FLOW_CORE_NONEXISTENT_VAR_XYZ");
+    PortableUnsetenv("FLOW_CORE_NONEXISTENT_VAR_XYZ");
     EXPECT_EQ(env->GetVar("FLOW_CORE_NONEXISTENT_VAR_XYZ"), "");
 }
 
@@ -87,8 +108,7 @@ TEST(EnvTest, AddBlocksTaskExecutes)
     auto env     = Env::Create(factory);
 
     std::atomic<int> sum{0};
-    env->AddBlocksTask<int>(
-        0, 100, [&](int start, int end) { sum.fetch_add(end - start); }, 4);
+    env->AddBlocksTask<int>(0, 100, [&](int start, int end) { sum.fetch_add(end - start); }, 4);
     env->Wait();
     EXPECT_EQ(sum.load(), 100);
 }

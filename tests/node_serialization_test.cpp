@@ -85,8 +85,7 @@ TEST_F(NodeSerializationTest, SetInputDataWithComputeFalseDoesNotInvokeCompute)
 
     struct Counter : public Node
     {
-        Counter(std::shared_ptr<Env> env, int& c)
-            : Node(UUID{}, TypeName_v<Counter>, "c", std::move(env)), _c{c}
+        Counter(std::shared_ptr<Env> env, int& c) : Node(UUID{}, TypeName_v<Counter>, "c", std::move(env)), _c{c}
         {
             AddInput<int>("in", "");
         }

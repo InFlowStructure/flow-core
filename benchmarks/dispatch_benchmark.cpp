@@ -47,8 +47,7 @@ namespace
 
 struct CountingSource : public Node
 {
-    CountingSource(std::shared_ptr<Env> env)
-        : Node(UUID{}, TypeName_v<CountingSource>, "src", std::move(env))
+    CountingSource(std::shared_ptr<Env> env) : Node(UUID{}, TypeName_v<CountingSource>, "src", std::move(env))
     {
         AddOutput<int>("out", "");
     }
@@ -70,8 +69,7 @@ struct CountingSource : public Node
 
 struct Identity : public Node
 {
-    Identity(std::shared_ptr<Env> env)
-        : Node(UUID{}, TypeName_v<Identity>, "id", std::move(env))
+    Identity(std::shared_ptr<Env> env) : Node(UUID{}, TypeName_v<Identity>, "id", std::move(env))
     {
         AddInput<int>("in", "");
         AddOutput<int>("out", "");
@@ -121,29 +119,33 @@ Stats Summarize(std::vector<double>& samples_ns)
 {
     std::sort(samples_ns.begin(), samples_ns.end());
     Stats s{};
-    s.min_ns = samples_ns.empty() ? 0.0 : samples_ns.front();
+    s.min_ns   = samples_ns.empty() ? 0.0 : samples_ns.front();
     double sum = 0.0;
-    for (double v : samples_ns) sum += v;
-    s.mean_ns = samples_ns.empty() ? 0.0 : sum / samples_ns.size();
+    for (double v : samples_ns)
+        sum += v;
+    s.mean_ns   = samples_ns.empty() ? 0.0 : sum / samples_ns.size();
     s.median_ns = samples_ns.empty() ? 0.0 : samples_ns[samples_ns.size() / 2];
-    s.p99_ns = samples_ns.empty() ? 0.0 : samples_ns[std::min(samples_ns.size() - 1,
-                                              static_cast<std::size_t>(samples_ns.size() * 99 / 100))];
+    s.p99_ns =
+        samples_ns.empty()
+            ? 0.0
+            : samples_ns[std::min(samples_ns.size() - 1, static_cast<std::size_t>(samples_ns.size() * 99 / 100))];
     return s;
 }
 
 void PrintRow(const char* label, const Stats& s, std::size_t n)
 {
     double ops = s.mean_ns > 0 ? 1e9 / s.mean_ns : 0.0;
-    std::printf("  %-44s  n=%-8zu  min=%10.1f ns  mean=%10.1f ns  p99=%10.1f ns  (%8.0f ops/s)\n",
-                label, n, s.min_ns, s.mean_ns, s.p99_ns, ops);
+    std::printf("  %-44s  n=%-8zu  min=%10.1f ns  mean=%10.1f ns  p99=%10.1f ns  (%8.0f ops/s)\n", label, n, s.min_ns,
+                s.mean_ns, s.p99_ns, ops);
 }
 
 // ----- 1. raw Compute() -----
 void BenchRawCompute(std::shared_ptr<Env> env)
 {
-    auto src = std::make_shared<CountingSource>(env);
+    auto src                     = std::make_shared<CountingSource>(env);
     constexpr std::size_t warmup = 10'000, iters = 200'000;
-    for (std::size_t i = 0; i < warmup; ++i) src->RawCompute();
+    for (std::size_t i = 0; i < warmup; ++i)
+        src->RawCompute();
 
     std::vector<double> samples;
     samples.reserve(iters);
@@ -163,7 +165,8 @@ void BenchInvokeComputeNoGraph(std::shared_ptr<Env> env)
     auto src = std::make_shared<CountingSource>(env);
     src->StubPropagate();
     constexpr std::size_t warmup = 10'000, iters = 100'000;
-    for (std::size_t i = 0; i < warmup; ++i) src->InvokeCompute();
+    for (std::size_t i = 0; i < warmup; ++i)
+        src->InvokeCompute();
 
     std::vector<double> samples;
     samples.reserve(iters);
@@ -183,20 +186,25 @@ void BenchPoolDispatch(std::shared_ptr<Env> env)
     constexpr std::size_t iters = 50'000;
 
     // Warmup
-    for (int i = 0; i < 1000; ++i) env->AddTask([] {});
+    for (int i = 0; i < 1000; ++i)
+        env->AddTask([] {});
     env->Wait();
 
     // Per-task wall-clock when amortized over the whole batch.
     std::atomic<int> sink{0};
     auto t0 = clk::now();
-    for (std::size_t i = 0; i < iters; ++i) env->AddTask([&] { sink.fetch_add(1); });
+    for (std::size_t i = 0; i < iters; ++i)
+        env->AddTask([&] { sink.fetch_add(1); });
     env->Wait();
-    auto t1 = clk::now();
+    auto t1         = clk::now();
     double total_ns = std::chrono::duration<double, std::nano>(t1 - t0).count();
     double per_task = total_ns / iters;
 
     Stats s{};
-    s.mean_ns = per_task; s.min_ns = per_task; s.median_ns = per_task; s.p99_ns = per_task;
+    s.mean_ns   = per_task;
+    s.min_ns    = per_task;
+    s.median_ns = per_task;
+    s.p99_ns    = per_task;
     PrintRow("Env::AddTask round-trip (amortized)", s, iters);
 }
 
@@ -380,10 +388,12 @@ void BenchFindConnections(std::size_t table_size)
     }
     // Add a handful targeted at a specific id we'll query.
     UUID hot_id;
-    for (int i = 0; i < 4; ++i) c.Add(hot_id, "out", target_id, "in");
+    for (int i = 0; i < 4; ++i)
+        c.Add(hot_id, "out", target_id, "in");
 
     constexpr std::size_t iters = 100'000;
-    for (std::size_t i = 0; i < 1000; ++i) (void)c.FindConnections(hot_id);
+    for (std::size_t i = 0; i < 1000; ++i)
+        (void)c.FindConnections(hot_id);
 
     std::vector<double> samples;
     samples.reserve(iters);
@@ -406,19 +416,23 @@ void BenchFindConnections(std::size_t table_size)
 // ----- 8. IndexableName hash cost -----
 void BenchIndexableNameHash()
 {
-    const char* strings[] = {"port_a", "input_value", "out", "very_long_port_name_for_test"};
+    const char* strings[]       = {"port_a", "input_value", "out", "very_long_port_name_for_test"};
     constexpr std::size_t iters = 1'000'000;
 
     volatile std::size_t sink = 0;
-    auto t0 = clk::now();
+    auto t0                   = clk::now();
     for (std::size_t i = 0; i < iters; ++i)
     {
         IndexableName n(strings[i & 3]);
         sink += static_cast<std::size_t>(n);
     }
-    auto t1 = clk::now();
+    auto t1    = clk::now();
     double per = std::chrono::duration<double, std::nano>(t1 - t0).count() / iters;
-    Stats s{}; s.mean_ns = per; s.min_ns = per; s.median_ns = per; s.p99_ns = per;
+    Stats s{};
+    s.mean_ns   = per;
+    s.min_ns    = per;
+    s.median_ns = per;
+    s.p99_ns    = per;
     PrintRow("IndexableName(str) construct (avg)", s, iters);
     (void)sink;
 }

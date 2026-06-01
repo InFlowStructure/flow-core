@@ -144,8 +144,10 @@ TEST_F(DispatchEdgeTest, FromJsonConnectionLegacyKeyNames)
     json j;
     UUID a_id, b_id;
     j["nodes"] = json::array();
-    j["nodes"].push_back(json{{"id", std::string(a_id)}, {"class", std::string{TypeName_v<de::Identity>}}, {"name", "a"}});
-    j["nodes"].push_back(json{{"id", std::string(b_id)}, {"class", std::string{TypeName_v<de::Identity>}}, {"name", "b"}});
+    j["nodes"].push_back(
+        json{{"id", std::string(a_id)}, {"class", std::string{TypeName_v<de::Identity>}}, {"name", "a"}});
+    j["nodes"].push_back(
+        json{{"id", std::string(b_id)}, {"class", std::string{TypeName_v<de::Identity>}}, {"name", "b"}});
 
     j["connections"] = json::array();
     j["connections"].push_back(json{
@@ -167,7 +169,7 @@ TEST_F(DispatchEdgeTest, TypeRegistryConvertReturnsOriginalWhenTargetUnknown)
 {
     TypeRegistry r;
     r.RegisterUnidirectionalConversion<int, double>();
-    auto d   = MakeNodeData<int>(7);
+    auto d = MakeNodeData<int>(7);
     // No conversion to std::string exists for int, even though int is in the map.
     auto out = r.Convert(d, TypeName_v<std::string>);
     EXPECT_EQ(out, d);

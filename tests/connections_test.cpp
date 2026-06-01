@@ -136,7 +136,7 @@ TEST(ConnectionsContainerTest, IteratesAllEntries)
     }
     EXPECT_EQ(count, 2u);
 
-    const Connections& cc = c;
+    const Connections& cc   = c;
     std::size_t const_count = 0;
     for (auto it = cc.begin(); it != cc.end(); ++it)
     {
