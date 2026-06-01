@@ -102,20 +102,6 @@ class INodeData
      * @returns The string representation of the current value.
      */
     virtual std::string ToString() const = 0;
-
-  protected:
-    /**
-     * @brief Get the current data as a void pointer.
-     * @returns A void pointer to the current data.
-     */
-    virtual void* AsPointer() const = 0;
-
-    /**
-     * @brief Sets the value of the current data from the given data.
-     */
-    virtual void FromPointer(void* data) = 0;
-
-    friend class Port;
 };
 
 /**
@@ -238,26 +224,6 @@ class NodeData : public INodeData
     virtual std::string ToString() const override { return ::flow::ToString(this->_value); }
 
   protected:
-    void* AsPointer() const override
-    {
-        return reinterpret_cast<void*>(const_cast<std::remove_cvref_t<T>*>(&this->_value));
-    }
-
-    void FromPointer(void* value) override
-    {
-        if constexpr (std::is_copy_assignable_v<std::remove_cv_t<T>>)
-        {
-            this->_value = *reinterpret_cast<std::remove_reference_t<T>*>(value);
-            return;
-        }
-        else if constexpr (std::is_move_assignable_v<std::remove_cv_t<T>>)
-        {
-            this->_value = std::move(*reinterpret_cast<std::remove_reference_t<T>*>(value));
-            return;
-        }
-    }
-
-  protected:
     value_type _value;
 };
 } // namespace detail
@@ -276,52 +242,6 @@ class NodeData : public detail::NodeData<T>
 
     using Base::Base;
     using Base::operator=;
-};
-
-/**
- * @brief Specialisation for unique_ptr.
- */
-template<typename T>
-class NodeData<std::unique_ptr<T>> : public detail::NodeData<std::unique_ptr<T>>
-{
-    using Base = detail::NodeData<std::unique_ptr<T>>;
-
-  public:
-    constexpr NodeData(const NodeData&) = delete;
-    constexpr NodeData(NodeData&&)      = default;
-    constexpr NodeData(std::unique_ptr<T>&& value) : Base(std::move(value)) {}
-
-    template<typename U, std::enable_if_t<std::is_convertible_v<std::decay_t<U>, std::decay_t<T>>, bool> = true>
-    constexpr NodeData(NodeData<std::unique_ptr<U>>&& other)
-        : detail::NodeData<std::unique_ptr<T>>::NodeData{std::make_unique<T>(static_cast<T&&>(std::move(other.Get())))}
-    {
-    }
-
-    virtual ~NodeData() = default;
-
-    constexpr NodeData& operator=(const NodeData&) = delete;
-    constexpr NodeData& operator=(NodeData&&)      = default;
-
-    constexpr auto operator*() const noexcept { return this->_value.operator*(); }
-    constexpr auto operator->() const noexcept { return this->_value.operator->(); }
-};
-
-/**
- * @brief Specialisation for copyable pointer types (raw, shared, weak)
- */
-template<concepts::CopyablePointer Ptr>
-class NodeData<Ptr> : public detail::NodeData<Ptr>
-{
-    using Base = detail::NodeData<Ptr>;
-
-  public:
-    virtual ~NodeData() = default;
-
-    using Base::Base;
-    using Base::operator=;
-
-    constexpr auto operator*() const noexcept { return this->_value.operator*(); }
-    constexpr auto operator->() const noexcept { return this->_value.operator->(); }
 };
 
 /**
@@ -375,25 +295,13 @@ using TWeakNodeData = std::weak_ptr<class NodeData<T>>;
  * @returns A shared pointer of the NodeData.
  */
 template<typename T>
-[[nodiscard]] constexpr auto MakeNodeData(const T& value)
+[[nodiscard]] constexpr auto MakeNodeData(const std::decay_t<T>& value)
 {
     return std::make_shared<NodeData<T>>(value);
 }
 
 template<typename T>
-[[nodiscard]] constexpr auto MakeNodeData(T&& value)
-{
-    return std::make_shared<NodeData<T>>(std::move(value));
-}
-
-template<typename T, typename U>
-[[nodiscard]] constexpr auto MakeNodeData(const NodeData<U>& value)
-{
-    return std::make_shared<NodeData<T>>(value);
-}
-
-template<typename T, typename U>
-[[nodiscard]] constexpr auto MakeNodeData(NodeData<U>&& value)
+[[nodiscard]] constexpr auto MakeNodeData(std::decay_t<T>&& value)
 {
     return std::make_shared<NodeData<T>>(std::move(value));
 }

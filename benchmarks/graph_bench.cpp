@@ -20,4 +20,18 @@ static void Graph_Construct(benchmark::State& state)
     }
 }
 
+// static void Graph_Run(benchmark::State& state)
+// {
+//     auto factory = flow::NodeFactory::Create();
+//     auto env     = flow::Env::Create(factory);
+//     flow::Graph graph("benchmark", env);
+
+//     graph.AddNode(factory->CreateFunctionNode<std::sin>(flow::UUID{}, "sin", env));
+
+//     for ([[maybe_unused]] const auto& _ : state)
+//     {
+//         graph.Run();
+//     }
+// }
+
 BENCHMARK(Graph_Construct);

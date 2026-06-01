@@ -8,31 +8,36 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <memory>
+
 using namespace flow;
 
 TEST(Data, Construction)
 {
-    auto data = MakeNodeData<int>(101);
-    EXPECT_EQ(data->Get(), 101);
+    auto data = flow::NodeData<int>(101);
+    EXPECT_EQ(data.Get(), 101);
+
+    auto ptr_data = flow::NodeData<std::unique_ptr<int>>(std::make_unique<int>(202));
+    EXPECT_NE(ptr_data.Get(), nullptr);
+    EXPECT_EQ(*ptr_data.Get(), 202);
 }
 
 TEST(Data, Copy)
 {
-    auto data = MakeNodeData<int>(101);
-    auto x    = data->Get();
-    EXPECT_EQ(x, 101);
+    auto data     = flow::NodeData<int>(101);
+    auto cpy_data = data;
+    EXPECT_EQ(cpy_data.Get(), 101);
 }
 
 TEST(Data, Move)
 {
-    auto data = MakeNodeData<int>(101);
+    auto data = flow::NodeData<int>(101);
     auto x    = std::move(data);
-    EXPECT_EQ(x->Get(), 101);
+    EXPECT_EQ(x.Get(), 101);
 }
 
 TEST(Data, Get)
 {
-    auto data = MakeNodeData<int>(101);
-    auto x    = data->Get();
-    EXPECT_EQ(x, 101);
+    auto data = flow::NodeData<int>(101);
+    EXPECT_EQ(data.Get(), 101);
 }

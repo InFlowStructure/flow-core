@@ -240,7 +240,7 @@ class FunctionNode : public Node
         else
         {
             auto result = std::apply([&](auto&&... args) { return _func(args->Get()...); }, inputs);
-            this->SetOutputData(return_output_name, MakeNodeData(std::move(result)), false);
+            this->SetOutputData(return_output_name, MakeNodeData<decltype(result)&&>(std::move(result)), false);
         }
 
         const auto& outputs = GetOutputPorts();

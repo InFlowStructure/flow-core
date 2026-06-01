@@ -103,9 +103,9 @@ void Graph::AddNode(SharedNode node)
         _nodes.emplace(node->ID(), node);
     }
 
-    node->_propagate_output_update = [this](const UUID& id, const IndexableName& key, SharedNodeData data) {
+    node->OnEmitOutput.Bind("propagate", [&](const UUID& id, const IndexableName& key, SharedNodeData data) {
         this->PropagateConnectionsData(id, key, std::move(data));
-    };
+    });
 
     OnNodeAdded.Broadcast(node);
 }
@@ -113,6 +113,8 @@ void Graph::AddNode(SharedNode node)
 void Graph::RemoveNode(const SharedNode& node)
 {
     if (!node) return;
+
+    node->OnEmitOutput.Unbind("propagate");
 
     RemoveNodeByID(node->ID());
 }

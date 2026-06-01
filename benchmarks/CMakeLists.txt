@@ -22,7 +22,9 @@ add_executable(
   event_bench.cpp
   graph_bench.cpp
   indexable_name_bench.cpp
+  node_bench.cpp
   node_data_bench.cpp
+  port_bench.cpp
   type_name_bench.cpp
   uuid_bench.cpp
 )

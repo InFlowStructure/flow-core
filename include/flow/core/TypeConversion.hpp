@@ -39,14 +39,7 @@ class TypeRegistry
     {
         if (auto from_data = DynamicCastNodeData<From>(data))
         {
-            if constexpr (std::is_rvalue_reference_v<To>)
-            {
-                return MakeNodeData<To, From>(std::move(*from_data));
-            }
-            else
-            {
-                return MakeNodeData<To, From>(*from_data);
-            }
+            return StaticCastNodeData<To>(from_data);
         }
 
         return data;

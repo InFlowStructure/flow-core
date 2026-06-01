@@ -182,7 +182,8 @@ class IndexableName
                                                    std::uint64_t a, std::uint64_t b)
         {
             a += w;
-            b               = Rotate(b + a + z, 21);
+            b = Rotate(b + a + z, 21);
+
             std::uint64_t c = a;
             a += x;
             a += y;

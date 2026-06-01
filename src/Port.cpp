@@ -35,14 +35,7 @@ void Port::SetData(SharedNodeData data, bool output)
         return;
     }
 
-    if (!_data || !data || output)
-    {
-        _data = std::move(data);
-    }
-    else
-    {
-        _data->FromPointer(data->AsPointer());
-    }
+    _data = std::move(data);
 
     if (OnSetData)
     {

@@ -142,7 +142,7 @@ TEST(Node, Compute)
 
     EXPECT_EQ(node.GetInputData<int>("in"), nullptr);
 
-    ASSERT_NO_THROW(node.SetInputData("in", MakeNodeData(101)));
+    ASSERT_NO_THROW(node.SetInputData("in", MakeNodeData<int>(101)));
 
     EXPECT_NE(node.GetInputData<int>("in"), nullptr);
     EXPECT_EQ(node.GetInputData<int>("in")->Get(), 101);
@@ -191,5 +191,5 @@ TEST(Node, Save)
     NodeTest::TestNode node;
 
     auto x = node.Save();
-    EXPECT_EQ(x, json({{"id", node.ID()}, {"class", node.GetClass()}, {"name", node.GetName()}, {"inputs", {}}}) );
+    EXPECT_EQ(x, json({{"id", node.ID()}, {"class", node.GetClass()}, {"name", node.GetName()}, {"inputs", {}}}));
 }

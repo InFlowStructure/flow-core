@@ -311,9 +311,6 @@ class Node
     /// Mutex for thread-safe operations on node data
     mutable std::mutex _mutex;
 
-    /// Event for graph to handle output propagation
-    Event<const UUID&, const IndexableName&, const SharedNodeData&> _propagate_output_update;
-
     friend class Graph;
 
   private:

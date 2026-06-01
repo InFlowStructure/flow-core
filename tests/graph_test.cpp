@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <format>
 #include <functional>
 
 using namespace flow;
