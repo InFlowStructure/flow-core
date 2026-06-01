@@ -90,8 +90,9 @@ std::array<std::byte, 16> GenerateUUID()
 
 std::array<std::byte, 16> UUIDFromString(const std::string& uuid_str)
 {
-    auto uuid_cfstr = CFStringCreateWithCStringNoCopy(nullptr, uuid_str.c_str(), kCFStringEncodingASCII, kCFAllocatorNull);
-    auto uuid       = CFUUIDCreateFromString(nullptr, uuid_cfstr);
+    auto uuid_cfstr =
+        CFStringCreateWithCStringNoCopy(nullptr, uuid_str.c_str(), kCFStringEncodingASCII, kCFAllocatorNull);
+    auto uuid = CFUUIDCreateFromString(nullptr, uuid_cfstr);
     if (uuid == nullptr)
     {
         CFRelease(uuid_cfstr);
