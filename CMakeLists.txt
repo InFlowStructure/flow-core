@@ -20,6 +20,7 @@ endif()
 
 option(${PROJECT_NAME}_BUILD_TESTS "Build tests (gtest)" OFF)
 option(${PROJECT_NAME}_BUILD_TOOLS "Build tools" OFF)
+option(${PROJECT_NAME}_BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(${PROJECT_NAME}_INSTALL "Add installation targets" OFF)
 
 # -----------------------------------------------------------------------------
@@ -158,4 +159,12 @@ endif()
 
 if (${PROJECT_NAME}_BUILD_TOOLS)
   add_subdirectory(tools)
+endif()
+
+# -----------------------------------------------------------------------------
+# Benchmarks
+# -----------------------------------------------------------------------------
+
+if (${PROJECT_NAME}_BUILD_BENCHMARKS)
+  add_subdirectory(benchmarks)
 endif()

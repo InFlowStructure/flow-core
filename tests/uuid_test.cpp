@@ -14,10 +14,7 @@ using namespace flow;
 // Positive cases
 // -------------------------------------------------------------------------
 
-TEST(UUIDTest, DefaultConstruction_DoesNotThrow)
-{
-    ASSERT_NO_THROW(UUID{});
-}
+TEST(UUIDTest, DefaultConstruction_DoesNotThrow) { ASSERT_NO_THROW(UUID{}); }
 
 TEST(UUIDTest, WellFormedString_RoundTrips)
 {
@@ -38,15 +35,9 @@ TEST(UUIDTest, WellFormedString_AllLowercase_RoundTrips)
 // Negative cases — all must throw std::invalid_argument
 // -------------------------------------------------------------------------
 
-TEST(UUIDTest, EmptyString_ThrowsInvalidArgument)
-{
-    EXPECT_THROW(UUID(""), std::invalid_argument);
-}
+TEST(UUIDTest, EmptyString_ThrowsInvalidArgument) { EXPECT_THROW(UUID(""), std::invalid_argument); }
 
-TEST(UUIDTest, NotAUUID_ThrowsInvalidArgument)
-{
-    EXPECT_THROW(UUID("not-a-uuid"), std::invalid_argument);
-}
+TEST(UUIDTest, NotAUUID_ThrowsInvalidArgument) { EXPECT_THROW(UUID("not-a-uuid"), std::invalid_argument); }
 
 TEST(UUIDTest, GarbageInteriorChars_ThrowsInvalidArgument)
 {
@@ -56,10 +47,7 @@ TEST(UUIDTest, GarbageInteriorChars_ThrowsInvalidArgument)
     EXPECT_THROW(UUID("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"), std::invalid_argument);
 }
 
-TEST(UUIDTest, TooShort_ThrowsInvalidArgument)
-{
-    EXPECT_THROW(UUID("4bb1696d-30d1-41d2"), std::invalid_argument);
-}
+TEST(UUIDTest, TooShort_ThrowsInvalidArgument) { EXPECT_THROW(UUID("4bb1696d-30d1-41d2"), std::invalid_argument); }
 
 TEST(UUIDTest, TooLong_ThrowsInvalidArgument)
 {
