@@ -52,6 +52,15 @@ target_include_directories(${TEST_EXE} PRIVATE
   ${thread_pool_SOURCE_DIR}/include
 )
 
+# Bake the test_module.fmod path into the test binary so module_test.cpp does
+# not depend on the runtime CWD (gtest_discover_tests sets WORKING_DIRECTORY,
+# but a direct binary invocation needs the path resolved at compile time).
+# The .fmod is copied to $<TARGET_FILE_DIR:${TEST_EXE}> by the test_module
+# subdir's POST_BUILD step below.
+target_compile_definitions(${TEST_EXE} PRIVATE
+  FLOW_CORE_TEST_MODULE_FMOD_PATH="$<TARGET_FILE_DIR:${TEST_EXE}>/test_module.fmod"
+)
+
 if(MSVC)
   add_custom_command(TARGET flow_core_tests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
