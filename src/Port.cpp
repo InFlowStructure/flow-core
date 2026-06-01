@@ -34,7 +34,16 @@ void Port::SetData(SharedNodeData data, bool output)
         return;
     }
 
-    if (!_data || !data || output)
+    // In-place value update preserves _data identity (downstream weak_ptrs
+    // and observers keep their handle), but is only valid when the incoming
+    // data is the SAME concrete type as the existing storage.  FromPointer
+    // does `*reinterpret_cast<T*>(other_ptr)` (NodeData.hpp), which silently
+    // reads the wrong number of bytes when widths differ — e.g. writing a
+    // NodeData<double> to a NodeData<float> port reads only the low 4 bytes
+    // of the double, so 440.0 (0x407B800000000000) becomes +0.0f.  On a
+    // type mismatch, replace the SharedNodeData instead.  Identity is lost
+    // for that single transition, but values are preserved correctly.
+    if (!_data || !data || output || _data->Type() != data->Type())
     {
         _data = std::move(data);
     }

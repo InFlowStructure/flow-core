@@ -73,6 +73,43 @@ TEST(PortTest, SetDataReplacesWhenOutputFlagSet)
     EXPECT_NE(p.GetData().get(), prev_raw);
 }
 
+TEST(PortTest, SetDataReplacesOnTypeMismatch)
+{
+    // Regression: writing a NodeData<double> into a NodeData<float> port
+    // previously fell into the in-place FromPointer branch, which
+    // reinterpret_cast'd the incoming double pointer as a float*, reading
+    // only the low 4 bytes and silently corrupting the value.
+    //
+    // Specifically: 440.0 as IEEE-754 double is 0x407B800000000000.
+    // The low 4 bytes (little-endian) are 0x00000000, which is +0.0f
+    // when reinterpret_cast'd as float — completely losing the value.
+    //
+    // SetData must REPLACE the SharedNodeData on type mismatch so the
+    // incoming value is preserved correctly, at the cost of changing
+    // _data's identity for that single transition.
+    auto initial = MakeNodeData<float>(1.0f);
+    Port p(IndexableName{"k"}, "", "float", initial, false, 0);
+    auto prev_raw = p.GetData().get();
+
+    // Type mismatch: double (8 bytes) into a float-typed port (4 bytes).
+    p.SetData(MakeNodeData<double>(440.0));
+
+    // Identity changes (replaced, not in-place).
+    EXPECT_NE(p.GetData().get(), prev_raw);
+
+    // Value preserved correctly — no byte-level corruption.  Reading as
+    // the actual stored type (double) returns 440.0 unchanged; reading
+    // as the previous-port type (float) returns null because the
+    // dynamic_pointer_cast fails (which is the correct, observable
+    // signal that the type changed, far better than silent zeroing).
+    auto as_double = CastNodeData<double>(p.GetData());
+    ASSERT_NE(as_double, nullptr);
+    EXPECT_DOUBLE_EQ(as_double->Get(), 440.0);
+
+    auto as_float = CastNodeData<float>(p.GetData());
+    EXPECT_EQ(as_float, nullptr);
+}
+
 TEST(PortTest, SetDataRejectsNullForRequired)
 {
     auto initial = MakeNodeData<int>(5);

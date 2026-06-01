@@ -12,7 +12,12 @@
 
 using namespace flow;
 
-const std::filesystem::path module_path = std::filesystem::current_path() / "test_module.fmod";
+// FLOW_CORE_TEST_MODULE_FMOD_PATH is set by tests/CMakeLists.txt to the absolute
+// path of the test_module.fmod produced alongside the test binary.  Using a
+// compile-time absolute path makes ModuleTest CWD-independent (it used to be
+// std::filesystem::current_path() / "test_module.fmod", which only worked when
+// the binary was invoked from inside the build dir).
+const std::filesystem::path module_path = FLOW_CORE_TEST_MODULE_FMOD_PATH;
 
 auto factory = std::make_shared<NodeFactory>();
 auto env     = Env::Create(factory);
