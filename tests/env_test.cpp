@@ -97,8 +97,7 @@ TEST(EnvTest, AddLoopTaskExecutes)
     auto env     = Env::Create(factory);
 
     std::atomic<int> counter{0};
-    env->AddLoopTask<int>(
-        0, 100, [&](int) { counter.fetch_add(1); }, 4);
+    env->AddLoopTask<int>(0, 100, [&](int) { counter.fetch_add(1); }, 4);
     env->Wait();
     EXPECT_EQ(counter.load(), 100);
 }
@@ -109,8 +108,7 @@ TEST(EnvTest, AddBlocksTaskExecutes)
     auto env     = Env::Create(factory);
 
     std::atomic<int> sum{0};
-    env->AddBlocksTask<int>(
-        0, 100, [&](int start, int end) { sum.fetch_add(end - start); }, 4);
+    env->AddBlocksTask<int>(0, 100, [&](int start, int end) { sum.fetch_add(end - start); }, 4);
     env->Wait();
     EXPECT_EQ(sum.load(), 100);
 }
